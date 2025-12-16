@@ -1,1 +1,4 @@
 project_id = "pzmqhpguegmawvtfdfud"
+
+[functions.parse-brochure]
+verify_jwt = false
