@@ -14,7 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      brochure_uploads: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          products_found: number | null
+          status: string
+          store: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          products_found?: number | null
+          status?: string
+          store: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          products_found?: number | null
+          status?: string
+          store?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      extracted_products: {
+        Row: {
+          brochure_id: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          mapped_product_id: string | null
+          promo_price: number | null
+          raw_name: string
+          raw_price: number | null
+          raw_unit: string | null
+        }
+        Insert: {
+          brochure_id: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          mapped_product_id?: string | null
+          promo_price?: number | null
+          raw_name: string
+          raw_price?: number | null
+          raw_unit?: string | null
+        }
+        Update: {
+          brochure_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          mapped_product_id?: string | null
+          promo_price?: number | null
+          raw_name?: string
+          raw_price?: number | null
+          raw_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extracted_products_brochure_id_fkey"
+            columns: ["brochure_id"]
+            isOneToOne: false
+            referencedRelation: "brochure_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
