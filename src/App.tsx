@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import TrendsPage from "./pages/TrendsPage";
 import AdminPage from "./pages/AdminPage";
+import MappingReviewPage from "./pages/MappingReviewPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/trends" element={<TrendsPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/mapping" element={<MappingReviewPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
