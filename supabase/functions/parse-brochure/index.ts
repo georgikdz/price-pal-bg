@@ -185,6 +185,33 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
         console.error('Error inserting products:', insertError);
         throw insertError;
       }
+
+      // Insert prices for mapped products
+      const pricesToInsert = extractedProducts
+        .filter((p: any) => p.mapped_product_id && p.raw_price)
+        .map((p: any) => ({
+          product_id: p.mapped_product_id,
+          store: store,
+          brand: p.raw_name || null,
+          price: p.promo_price || p.raw_price,
+          promo_price: p.promo_price || null,
+          is_promo: !!p.promo_price,
+          unit: p.raw_unit || null,
+          brochure_id: brochureId,
+        }));
+
+      if (pricesToInsert.length > 0) {
+        const { error: pricesError } = await supabase
+          .from('prices')
+          .insert(pricesToInsert);
+
+        if (pricesError) {
+          console.error('Error inserting prices:', pricesError);
+          // Don't throw, just log - products are already inserted
+        } else {
+          console.log(`Inserted ${pricesToInsert.length} prices`);
+        }
+      }
     }
 
     // Update brochure status

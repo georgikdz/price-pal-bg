@@ -1,9 +1,8 @@
 import { Layout } from '@/components/layout/Layout';
-import { StatsCard } from '@/components/dashboard/StatsCard';
-import { BestDealsCard } from '@/components/dashboard/BestDealsCard';
+import { StatsCardsLive } from '@/components/dashboard/StatsCardLive';
+import { BestDealsCardLive } from '@/components/dashboard/BestDealsCardLive';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
-import { PriceComparisonMini } from '@/components/dashboard/PriceComparisonMini';
-import { TrendingDown, Package, Store, Percent } from 'lucide-react';
+import { PriceComparisonMiniLive } from '@/components/dashboard/PriceComparisonMiniLive';
 
 export default function Index() {
   return (
@@ -20,54 +19,28 @@ export default function Index() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Products Tracked"
-            value="30"
-            subtitle="Essential items"
-            icon={<Package className="h-6 w-6" />}
-          />
-          <StatsCard
-            title="Stores Compared"
-            value="3"
-            subtitle="Billa • Kaufland • Lidl"
-            icon={<Store className="h-6 w-6" />}
-          />
-          <StatsCard
-            title="Avg. Savings"
-            value="15%"
-            subtitle="By choosing wisely"
-            icon={<Percent className="h-6 w-6" />}
-            trend={{ value: 2.3, isPositive: true }}
-          />
-          <StatsCard
-            title="Price Drops"
-            value="12"
-            subtitle="This week"
-            icon={<TrendingDown className="h-6 w-6" />}
-          />
-        </div>
+        {/* Stats Grid - Now using live data */}
+        <StatsCardsLive />
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <CategoryBreakdown />
             
-            {/* Quick Compare */}
+            {/* Quick Compare - Now using live data */}
             <div>
               <h3 className="font-display text-lg font-semibold mb-4">Quick Compare</h3>
               <div className="grid sm:grid-cols-2 gap-4 stagger-children">
-                <PriceComparisonMini productId="milk" />
-                <PriceComparisonMini productId="bread" />
-                <PriceComparisonMini productId="eggs" />
-                <PriceComparisonMini productId="sunflower-oil" />
+                <PriceComparisonMiniLive productId="milk" />
+                <PriceComparisonMiniLive productId="bread" />
+                <PriceComparisonMiniLive productId="eggs" />
+                <PriceComparisonMiniLive productId="sunflower-oil" />
               </div>
             </div>
           </div>
           
           <div>
-            <BestDealsCard />
+            <BestDealsCardLive />
           </div>
         </div>
       </div>
