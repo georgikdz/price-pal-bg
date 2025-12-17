@@ -53,32 +53,42 @@ export function useAuth() {
   return { user, session, loading, signIn, signUp, signOut };
 }
 
-export function useIsAdmin() {
-  const { user } = useAuth();
+export function useIsAdmin(userId?: string) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function checkAdmin() {
-      if (!user) {
+      if (!userId) {
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
+      setLoading(true);
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
+
+      if (cancelled) return;
 
       setIsAdmin(!!data && !error);
       setLoading(false);
     }
 
     checkAdmin();
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   return { isAdmin, loading };
 }
+
