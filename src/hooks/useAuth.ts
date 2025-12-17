@@ -53,9 +53,17 @@ export function useAuth() {
   return { user, session, loading, signIn, signUp, signOut };
 }
 
+const adminCache = new Map<string, boolean>();
+
 export function useIsAdmin(userId?: string) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (!userId) return false;
+    return adminCache.get(userId) ?? false;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!userId) return false;
+    return !adminCache.has(userId);
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +75,13 @@ export function useIsAdmin(userId?: string) {
         return;
       }
 
-      setLoading(true);
+      // If we already know the answer, don't block the UI on a refetch.
+      if (adminCache.has(userId)) {
+        setIsAdmin(adminCache.get(userId) ?? false);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
 
       const { data, error } = await supabase
         .from('user_roles')
@@ -78,7 +92,15 @@ export function useIsAdmin(userId?: string) {
 
       if (cancelled) return;
 
-      setIsAdmin(!!data && !error);
+      // If the check fails but we had a cached value, keep the cached value.
+      if (error && adminCache.has(userId)) {
+        setLoading(false);
+        return;
+      }
+
+      const nextIsAdmin = !!data && !error;
+      adminCache.set(userId, nextIsAdmin);
+      setIsAdmin(nextIsAdmin);
       setLoading(false);
     }
 
