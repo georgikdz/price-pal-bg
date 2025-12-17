@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, Settings, TrendingDown } from 'lucide-react';
+import { BarChart3, ShoppingCart, Settings, TrendingDown, GitCompare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: BarChart3 },
   { path: '/compare', label: 'Compare', icon: ShoppingCart },
   { path: '/trends', label: 'Trends', icon: TrendingDown },
+  { path: '/mapping', label: 'Mapping', icon: GitCompare },
   { path: '/admin', label: 'Admin', icon: Settings },
 ];
 
