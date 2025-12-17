@@ -1,17 +1,30 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, Settings, TrendingDown, GitCompare } from 'lucide-react';
+import { BarChart3, ShoppingCart, Settings, TrendingDown, GitCompare, LogIn, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth, useIsAdmin } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
-const navItems = [
+const publicNavItems = [
   { path: '/', label: 'Dashboard', icon: BarChart3 },
   { path: '/compare', label: 'Compare', icon: ShoppingCart },
   { path: '/trends', label: 'Trends', icon: TrendingDown },
+];
+
+const adminNavItems = [
   { path: '/mapping', label: 'Mapping', icon: GitCompare },
   { path: '/admin', label: 'Admin', icon: Settings },
 ];
 
 export function Header() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
+
+  const navItems = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems;
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,12 +59,26 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 text-xs">
             <span className="h-2 w-2 rounded-full bg-store-billa" />
             <span className="h-2 w-2 rounded-full bg-store-kaufland" />
             <span className="h-2 w-2 rounded-full bg-store-lidl" />
           </div>
+          
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          ) : (
+            <Link to="/auth">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Login</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </header>
