@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Store } from '@/types';
+import { CANONICAL_PRODUCTS, CATEGORY_LABELS } from '@/data/products';
+import { ProductCategory } from '@/types';
 
 export interface Price {
   id: string;
@@ -130,5 +131,77 @@ export function usePriceHistory(productId: string) {
       return data as Price[];
     },
     enabled: !!productId,
+  });
+}
+
+export function useCategoryPriceChanges() {
+  return useQuery({
+    queryKey: ['category-price-changes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('prices')
+        .select('*')
+        .order('extracted_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const prices = data as Price[];
+      if (prices.length === 0) return [];
+      
+      // Build a map of product_id to category
+      const productCategoryMap = new Map<string, ProductCategory>();
+      for (const product of CANONICAL_PRODUCTS) {
+        productCategoryMap.set(product.id, product.category);
+      }
+      
+      // Group prices by product and get dates
+      const pricesByProduct = new Map<string, Price[]>();
+      for (const price of prices) {
+        const existing = pricesByProduct.get(price.product_id) || [];
+        existing.push(price);
+        pricesByProduct.set(price.product_id, existing);
+      }
+      
+      // Calculate average price change per category
+      const categoryChanges = new Map<ProductCategory, { oldPrices: number[]; newPrices: number[] }>();
+      
+      for (const [productId, productPrices] of pricesByProduct) {
+        const category = productCategoryMap.get(productId);
+        if (!category || productPrices.length < 2) continue;
+        
+        // Sort by date
+        productPrices.sort((a, b) => new Date(a.extracted_at).getTime() - new Date(b.extracted_at).getTime());
+        
+        const oldPrice = productPrices[0].promo_price || productPrices[0].price;
+        const newPrice = productPrices[productPrices.length - 1].promo_price || productPrices[productPrices.length - 1].price;
+        
+        if (!categoryChanges.has(category)) {
+          categoryChanges.set(category, { oldPrices: [], newPrices: [] });
+        }
+        
+        const catData = categoryChanges.get(category)!;
+        catData.oldPrices.push(oldPrice);
+        catData.newPrices.push(newPrice);
+      }
+      
+      // Calculate percentage changes
+      const results = Object.keys(CATEGORY_LABELS).map(category => {
+        const catData = categoryChanges.get(category as ProductCategory);
+        if (!catData || catData.oldPrices.length === 0) {
+          return { category: CATEGORY_LABELS[category as ProductCategory], change: 0 };
+        }
+        
+        const avgOld = catData.oldPrices.reduce((a, b) => a + b, 0) / catData.oldPrices.length;
+        const avgNew = catData.newPrices.reduce((a, b) => a + b, 0) / catData.newPrices.length;
+        const change = avgOld > 0 ? ((avgNew - avgOld) / avgOld) * 100 : 0;
+        
+        return {
+          category: CATEGORY_LABELS[category as ProductCategory],
+          change: Math.round(change * 10) / 10,
+        };
+      });
+      
+      return results;
+    },
   });
 }
