@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { CANONICAL_PRODUCTS, MOCK_PRICES, STORE_INFO, CATEGORY_LABELS } from '@/data/products';
+import { CANONICAL_PRODUCTS, STORE_INFO, CATEGORY_LABELS } from '@/data/products';
 import { Store, ProductCategory } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ArrowDown, ArrowUp, Filter } from 'lucide-react';
+import { ArrowDown, ArrowUp, Filter, Loader2 } from 'lucide-react';
+import { useLatestPrices, Price } from '@/hooks/usePrices';
 
 type SortField = 'name' | 'billa' | 'kaufland' | 'lidl';
 type SortDirection = 'asc' | 'desc';
@@ -13,6 +14,8 @@ export function ComparisonTable() {
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  
+  const { data: prices, isLoading } = useLatestPrices();
 
   const categories = ['all', ...Object.keys(CATEGORY_LABELS)] as (ProductCategory | 'all')[];
   const stores: Store[] = ['billa', 'kaufland', 'lidl'];
@@ -21,8 +24,13 @@ export function ComparisonTable() {
     product => selectedCategory === 'all' || product.category === selectedCategory
   );
 
-  const getPrice = (productId: string, store: Store) => {
-    return MOCK_PRICES.find(p => p.productId === productId && p.store === store);
+  const getPrice = (productId: string, store: Store): Price | undefined => {
+    return prices?.find(p => p.product_id === productId && p.store === store);
+  };
+
+  const getEffectivePrice = (price: Price | undefined): number | undefined => {
+    if (!price) return undefined;
+    return price.is_promo && price.promo_price ? price.promo_price : price.price;
   };
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -32,8 +40,8 @@ export function ComparisonTable() {
         : b.nameBg.localeCompare(a.nameBg);
     }
     
-    const priceA = getPrice(a.id, sortField)?.price ?? Infinity;
-    const priceB = getPrice(b.id, sortField)?.price ?? Infinity;
+    const priceA = getEffectivePrice(getPrice(a.id, sortField)) ?? Infinity;
+    const priceB = getEffectivePrice(getPrice(b.id, sortField)) ?? Infinity;
     
     return sortDirection === 'asc' ? priceA - priceB : priceB - priceA;
   });
@@ -55,6 +63,14 @@ export function ComparisonTable() {
       <ArrowDown className="h-3 w-3" />
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -106,16 +122,21 @@ export function ComparisonTable() {
             </thead>
             <tbody className="stagger-children">
               {sortedProducts.map(product => {
-                const prices = stores.map(store => ({
+                const storePrices = stores.map(store => ({
                   store,
-                  price: getPrice(product.id, store),
+                  priceData: getPrice(product.id, store),
                 }));
                 
-                const validPrices = prices.filter(p => p.price);
-                const minPrice = validPrices.length > 0 
-                  ? Math.min(...validPrices.map(p => p.price!.price))
+                const validPrices = storePrices.filter(p => p.priceData);
+                const effectivePrices = validPrices.map(p => ({
+                  store: p.store,
+                  effectivePrice: getEffectivePrice(p.priceData)!,
+                }));
+                
+                const minPrice = effectivePrices.length > 0 
+                  ? Math.min(...effectivePrices.map(p => p.effectivePrice))
                   : null;
-                const bestStore = validPrices.find(p => p.price?.price === minPrice)?.store;
+                const bestStore = effectivePrices.find(p => p.effectivePrice === minPrice)?.store;
                 
                 return (
                   <tr 
@@ -133,7 +154,8 @@ export function ComparisonTable() {
                     </td>
                     {stores.map(store => {
                       const priceData = getPrice(product.id, store);
-                      const isLowest = priceData?.price === minPrice;
+                      const effectivePrice = getEffectivePrice(priceData);
+                      const isLowest = effectivePrice === minPrice && minPrice !== null;
                       
                       return (
                         <td key={store} className="p-4 text-center">
@@ -142,14 +164,28 @@ export function ComparisonTable() {
                               "inline-flex flex-col items-center p-2 rounded-lg",
                               isLowest && "bg-primary/10"
                             )}>
-                              <span className={cn(
-                                "font-display font-bold text-lg",
-                                isLowest ? "text-primary" : "text-foreground"
-                              )}>
-                                {priceData.price.toFixed(2)}
-                              </span>
+                              {priceData.is_promo && priceData.promo_price ? (
+                                <>
+                                  <span className="text-xs text-muted-foreground line-through">
+                                    {priceData.price.toFixed(2)} лв.
+                                  </span>
+                                  <span className={cn(
+                                    "font-display font-bold text-lg",
+                                    isLowest ? "text-primary" : "text-foreground"
+                                  )}>
+                                    {priceData.promo_price.toFixed(2)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className={cn(
+                                  "font-display font-bold text-lg",
+                                  isLowest ? "text-primary" : "text-foreground"
+                                )}>
+                                  {priceData.price.toFixed(2)}
+                                </span>
+                              )}
                               <span className="text-xs text-muted-foreground">лв.</span>
-                              {priceData.isPromo && (
+                              {priceData.is_promo && (
                                 <Badge variant="promo" className="mt-1 text-xs">
                                   Promo
                                 </Badge>
