@@ -115,3 +115,20 @@ export function usePriceStats() {
     avgSavings: Math.round(avgSavings),
   };
 }
+
+export function usePriceHistory(productId: string) {
+  return useQuery({
+    queryKey: ['price-history', productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('prices')
+        .select('*')
+        .eq('product_id', productId)
+        .order('extracted_at', { ascending: true });
+      
+      if (error) throw error;
+      return data as Price[];
+    },
+    enabled: !!productId,
+  });
+}
