@@ -25,12 +25,12 @@ export default function Index() {
             Track trends, find the best deals, save money.
           </p>
           {isAdmin && (
-            <Link to="/admin" className="inline-block mt-4">
-              <Button className="gap-2">
+            <Button asChild className="mt-4 gap-2">
+              <Link to="/admin">
                 <Upload className="h-4 w-4" />
                 Upload Brochures
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
         </div>
 
