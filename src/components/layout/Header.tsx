@@ -18,9 +18,10 @@ const adminNavItems = [
 export function Header() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin } = useIsAdmin(user?.id);
 
   const navItems = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems;
+
 
   const handleSignOut = async () => {
     await signOut();

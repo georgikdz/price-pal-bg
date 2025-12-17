@@ -1,16 +1,22 @@
 import { Link, useLocation } from 'react-router-dom';
 import { BarChart3, ShoppingCart, Settings, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 
-const navItems = [
+const publicNavItems = [
   { path: '/', label: 'Dashboard', icon: BarChart3 },
   { path: '/compare', label: 'Compare', icon: ShoppingCart },
   { path: '/trends', label: 'Trends', icon: TrendingDown },
-  { path: '/admin', label: 'Admin', icon: Settings },
 ];
+
+const adminNavItems = [{ path: '/admin', label: 'Admin', icon: Settings }];
 
 export function MobileNav() {
   const location = useLocation();
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin(user?.id);
+
+  const navItems = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-pb">
@@ -21,9 +27,7 @@ export function MobileNav() {
             to={path}
             className={cn(
               "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all",
-              location.pathname === path
-                ? "text-primary"
-                : "text-muted-foreground"
+              location.pathname === path ? "text-primary" : "text-muted-foreground"
             )}
           >
             <Icon className="h-5 w-5" />
@@ -34,3 +38,4 @@ export function MobileNav() {
     </nav>
   );
 }
+

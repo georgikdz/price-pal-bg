@@ -10,7 +10,8 @@ interface RequireAdminProps {
 export function RequireAdmin({ children }: RequireAdminProps) {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user?.id);
+
 
   useEffect(() => {
     if (!authLoading && !user) {
