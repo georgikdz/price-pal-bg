@@ -1,10 +1,17 @@
+import { Link } from 'react-router-dom';
+import { Upload } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { StatsCardsLive } from '@/components/dashboard/StatsCardLive';
 import { BestDealsCardLive } from '@/components/dashboard/BestDealsCardLive';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { PriceComparisonMiniLive } from '@/components/dashboard/PriceComparisonMiniLive';
+import { Button } from '@/components/ui/button';
+import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 
 export default function Index() {
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin(user?.id);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -17,6 +24,14 @@ export default function Index() {
             Compare grocery prices across Billa, Kaufland, and Lidl. 
             Track trends, find the best deals, save money.
           </p>
+          {isAdmin && (
+            <Link to="/admin" className="inline-block mt-4">
+              <Button className="gap-2">
+                <Upload className="h-4 w-4" />
+                Upload Brochures
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Stats Grid - Now using live data */}
