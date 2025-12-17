@@ -91,6 +91,56 @@ export type Database = {
           },
         ]
       }
+      prices: {
+        Row: {
+          brand: string | null
+          brochure_id: string | null
+          created_at: string
+          extracted_at: string
+          id: string
+          is_promo: boolean | null
+          price: number
+          product_id: string
+          promo_price: number | null
+          store: string
+          unit: string | null
+        }
+        Insert: {
+          brand?: string | null
+          brochure_id?: string | null
+          created_at?: string
+          extracted_at?: string
+          id?: string
+          is_promo?: boolean | null
+          price: number
+          product_id: string
+          promo_price?: number | null
+          store: string
+          unit?: string | null
+        }
+        Update: {
+          brand?: string | null
+          brochure_id?: string | null
+          created_at?: string
+          extracted_at?: string
+          id?: string
+          is_promo?: boolean | null
+          price?: number
+          product_id?: string
+          promo_price?: number | null
+          store?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prices_brochure_id_fkey"
+            columns: ["brochure_id"]
+            isOneToOne: false
+            referencedRelation: "brochure_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
