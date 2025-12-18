@@ -5,7 +5,6 @@ import { StatsCardsLive } from '@/components/dashboard/StatsCardLive';
 import { BestDealsCardLive } from '@/components/dashboard/BestDealsCardLive';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { PriceComparisonMiniLive } from '@/components/dashboard/PriceComparisonMiniLive';
-import { RecentUploadsCard } from '@/components/dashboard/RecentUploadsCard';
 import { Button } from '@/components/ui/button';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 
@@ -58,7 +57,6 @@ export default function Index() {
 
           <div className="space-y-6">
             <BestDealsCardLive />
-            <RecentUploadsCard />
           </div>
         </div>
       </div>
