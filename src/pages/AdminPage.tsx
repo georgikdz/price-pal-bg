@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { BrochureUpload } from '@/components/admin/BrochureUpload';
 import { ProductMapping } from '@/components/admin/ProductMapping';
+import { RecentUploadsCard } from '@/components/dashboard/RecentUploadsCard';
 import { Button } from '@/components/ui/button';
 import { Upload, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,8 +46,15 @@ export default function AdminPage() {
         </div>
 
         {/* Content */}
-        {activeTab === 'upload' && <BrochureUpload />}
-        {activeTab === 'mapping' && <ProductMapping />}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {activeTab === 'upload' && <BrochureUpload />}
+            {activeTab === 'mapping' && <ProductMapping />}
+          </div>
+          <div>
+            <RecentUploadsCard />
+          </div>
+        </div>
       </div>
     </Layout>
   );
