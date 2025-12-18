@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { StatsCardsLive } from '@/components/dashboard/StatsCardLive';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 
 export default function Index() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin(user?.id);
 
@@ -25,14 +26,13 @@ export default function Index() {
             Track trends, find the best deals, save money.
           </p>
           {isAdmin && (
-            <Link to="/admin" className="inline-block mt-4">
-              <Button className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload Brochures
-              </Button>
-            </Link>
+            <Button className="mt-4 gap-2" onClick={() => navigate('/admin')}>
+              <Upload className="h-4 w-4" />
+              Upload Brochures
+            </Button>
           )}
         </div>
+
 
         {/* Stats Grid - Now using live data */}
         <StatsCardsLive />
