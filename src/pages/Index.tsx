@@ -13,6 +13,11 @@ export default function Index() {
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin(user?.id);
 
+  const handleAdminClick = () => {
+    console.log('[Index] Upload Brochures click', { userId: user?.id, isAdmin });
+    navigate('/admin');
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -22,17 +27,16 @@ export default function Index() {
             <span className="text-gradient">ЦениБГ</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Compare grocery prices across Billa, Kaufland, and Lidl. 
+            Compare grocery prices across Billa, Kaufland, and Lidl.
             Track trends, find the best deals, save money.
           </p>
           {isAdmin && (
-            <Button className="mt-4 gap-2" onClick={() => navigate('/admin')}>
+            <Button type="button" className="mt-4 gap-2" onClick={handleAdminClick}>
               <Upload className="h-4 w-4" />
               Upload Brochures
             </Button>
           )}
         </div>
-
 
         {/* Stats Grid - Now using live data */}
         <StatsCardsLive />
@@ -41,7 +45,7 @@ export default function Index() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <CategoryBreakdown />
-            
+
             {/* Quick Compare - Now using live data */}
             <div>
               <h3 className="font-display text-lg font-semibold mb-4">Quick Compare</h3>
@@ -53,7 +57,7 @@ export default function Index() {
               </div>
             </div>
           </div>
-          
+
           <div>
             <BestDealsCardLive />
           </div>

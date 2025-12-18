@@ -15,12 +15,14 @@ export function RequireAdmin({ children }: RequireAdminProps) {
 
   useEffect(() => {
     if (!authLoading && !user) {
+      console.log('[RequireAdmin] redirect -> /auth (no user)');
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (!authLoading && !adminLoading && user && !isAdmin) {
+      console.log('[RequireAdmin] redirect -> / (not admin)', { userId: user.id });
       navigate('/');
     }
   }, [user, isAdmin, authLoading, adminLoading, navigate]);
