@@ -56,8 +56,14 @@ export function useAuth() {
 const adminCache = new Map<string, boolean>();
 
 export function useIsAdmin(userId?: string) {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (!userId) return false;
+    return adminCache.get(userId) ?? false;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!userId) return false;
+    return !adminCache.has(userId);
+  });
 
   // IMPORTANT: when userId changes from undefined -> real id, we must immediately
   // enter a "loading" state (unless cached), otherwise route guards can redirect
@@ -90,11 +96,11 @@ export function useIsAdmin(userId?: string) {
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
-        .limit(1);
+        .maybeSingle();
 
       if (cancelled) return;
 
-      const nextIsAdmin = !error && Array.isArray(data) && data.length > 0;
+      const nextIsAdmin = !error && !!data;
       adminCache.set(userId, nextIsAdmin);
       setIsAdmin(nextIsAdmin);
       setLoading(false);
@@ -109,4 +115,5 @@ export function useIsAdmin(userId?: string) {
 
   return { isAdmin, loading };
 }
+
 
