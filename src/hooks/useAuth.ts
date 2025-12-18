@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -56,49 +56,45 @@ export function useAuth() {
 const adminCache = new Map<string, boolean>();
 
 export function useIsAdmin(userId?: string) {
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    if (!userId) return false;
-    return adminCache.get(userId) ?? false;
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (!userId) return false;
-    return !adminCache.has(userId);
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // IMPORTANT: when userId changes from undefined -> real id, we must immediately
+  // enter a "loading" state (unless cached), otherwise route guards can redirect
+  // before the admin check completes.
+  useLayoutEffect(() => {
+    if (!userId) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+
+    if (adminCache.has(userId)) {
+      setIsAdmin(adminCache.get(userId) ?? false);
+      setLoading(false);
+    } else {
+      setIsAdmin(false);
+      setLoading(true);
+    }
+  }, [userId]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function checkAdmin() {
-      if (!userId) {
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      // If we already know the answer, don't block the UI on a refetch.
-      if (adminCache.has(userId)) {
-        setIsAdmin(adminCache.get(userId) ?? false);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
+      if (!userId) return;
+      if (adminCache.has(userId)) return;
 
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'admin')
-        .maybeSingle();
+        .limit(1);
 
       if (cancelled) return;
 
-      // If the check fails but we had a cached value, keep the cached value.
-      if (error && adminCache.has(userId)) {
-        setLoading(false);
-        return;
-      }
-
-      const nextIsAdmin = !!data && !error;
+      const nextIsAdmin = !error && Array.isArray(data) && data.length > 0;
       adminCache.set(userId, nextIsAdmin);
       setIsAdmin(nextIsAdmin);
       setLoading(false);
