@@ -1,10 +1,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation constants
+const MAX_IMAGES = 50;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB per image
+const VALID_STORES = ['billa', 'kaufland', 'lidl'] as const;
+
+// Input validation schema
+const imageSchema = z.object({
+  dataUrl: z.string().refine(
+    (url) => url.startsWith('data:image/') && url.length < MAX_IMAGE_SIZE,
+    'Невалидно или прекалено голямо изображение'
+  )
+});
+
+const requestSchema = z.object({
+  brochureId: z.string().uuid('Невалиден формат на brochure ID'),
+  store: z.enum(VALID_STORES, {
+    errorMap: () => ({ message: 'Магазинът трябва да бъде billa, kaufland или lidl' })
+  }),
+  images: z.array(imageSchema).min(1, 'Необходимо е поне едно изображение').max(MAX_IMAGES, `Максимум ${MAX_IMAGES} изображения`)
+});
 
 const CANONICAL_PRODUCTS = [
   { id: 'kashkaval', name: 'Yellow Cheese (Kashkaval)', nameBg: 'Кашкавал', category: 'dairy' },
@@ -40,6 +62,7 @@ const CANONICAL_PRODUCTS = [
 ];
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -47,23 +70,89 @@ serve(async (req) => {
   let brochureId: string | undefined;
 
   try {
-    const body = await req.json();
-    brochureId = body?.brochureId;
-    const { store, images } = body ?? {};
-
-    // Validate required fields
-    if (!brochureId || !store) {
+    // === AUTHENTICATION CHECK ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: brochureId, store' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: 'Неоторизиран достъп' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate images array
-    if (!images || !Array.isArray(images) || images.length === 0) {
+    // Create client with user's token to verify authentication
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message);
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid images array' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: 'Неоторизиран достъп' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // === ADMIN ROLE CHECK ===
+    const { data: isAdmin, error: roleError } = await userClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (roleError || !isAdmin) {
+      console.error('Admin role check failed:', roleError?.message || 'User is not admin');
+      return new Response(
+        JSON.stringify({ error: 'Забранен достъп: Изисква се администраторска роля' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Authenticated admin user: ${user.id}`);
+
+    // === INPUT VALIDATION ===
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Invalid JSON in request body');
+      return new Response(
+        JSON.stringify({ error: 'Невалиден JSON формат' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      const errorMessages = validation.error.errors.map(e => e.message);
+      console.error('Validation failed:', errorMessages);
+      return new Response(
+        JSON.stringify({ error: 'Невалидни параметри', details: errorMessages }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { brochureId: validatedBrochureId, store, images } = validation.data;
+    brochureId = validatedBrochureId;
+
+    // === VERIFY BROCHURE EXISTS ===
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: brochure, error: brochureError } = await supabase
+      .from('brochure_uploads')
+      .select('id')
+      .eq('id', brochureId)
+      .single();
+
+    if (brochureError || !brochure) {
+      console.error('Brochure not found:', brochureId);
+      return new Response(
+        JSON.stringify({ error: 'Брошурата не е намерена' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -73,10 +162,6 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Build AI request with images
     const productListStr = CANONICAL_PRODUCTS.map(p => 
@@ -127,12 +212,10 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
 
     // Add each page image
     for (const img of images) {
-      if (img.dataUrl && typeof img.dataUrl === 'string' && img.dataUrl.startsWith('data:image/')) {
-        userContent.push({
-          type: 'image_url',
-          image_url: { url: img.dataUrl },
-        });
-      }
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: img.dataUrl },
+      });
     }
 
     console.log('Calling AI API...');
@@ -277,15 +360,15 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     }
 
     // Return user-friendly error messages
-    let userMessage = 'Failed to process brochure';
+    let userMessage = 'Грешка при обработка на брошурата';
     let statusCode = 500;
 
     if (error instanceof Error) {
       if (error.message.includes('Rate limit')) {
-        userMessage = 'Service temporarily unavailable. Please try again later.';
+        userMessage = 'Услугата е временно недостъпна. Моля, опитайте отново по-късно.';
         statusCode = 503;
       } else if (error.message.includes('credits')) {
-        userMessage = 'Processing service unavailable';
+        userMessage = 'Услугата за обработка е недостъпна';
         statusCode = 503;
       }
     }
