@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, Clock, Loader2, RotateCcw } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, Loader2, RotateCcw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Store } from '@/types';
@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { pdfToImages, estimateImagesSize, type PDFConversionProgress } from '@/lib/pdfToImages';
 import { Progress } from '@/components/ui/progress';
+import { pricesToCsv, downloadCsv } from '@/lib/csvUtils';
+import { Price } from '@/hooks/usePrices';
 
 interface UploadedFile {
   id: string;
@@ -267,6 +269,42 @@ export function BrochureUpload() {
     }
   };
 
+  const handleExportBrochure = async (upload: UploadedFile) => {
+    try {
+      // Fetch prices for this brochure
+      const { data: prices, error } = await supabase
+        .from('prices')
+        .select('*')
+        .eq('brochure_id', upload.id);
+
+      if (error) throw error;
+
+      if (!prices || prices.length === 0) {
+        toast({
+          title: 'No prices found',
+          description: 'No prices were extracted from this brochure.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const csv = pricesToCsv(prices as Price[]);
+      const filename = `${upload.store}_${upload.fileName.replace('.pdf', '')}_${upload.uploadedAt.toISOString().split('T')[0]}.csv`;
+      downloadCsv(csv, filename);
+
+      toast({
+        title: 'Export successful',
+        description: `Exported ${prices.length} prices to ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export failed',
+        description: error instanceof Error ? error.message : 'Failed to export prices',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
       case 'completed':
@@ -397,11 +435,22 @@ export function BrochureUpload() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {upload.productsFound !== undefined && upload.status === 'completed' && (
                     <span className="text-sm text-muted-foreground">
                       {upload.productsFound} products
                     </span>
+                  )}
+                  {upload.status === 'completed' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleExportBrochure(upload)}
+                      className="gap-1.5 text-xs h-7 px-2"
+                    >
+                      <Download className="h-3 w-3" />
+                      CSV
+                    </Button>
                   )}
                   {upload.status === 'failed' && (
                     <Button

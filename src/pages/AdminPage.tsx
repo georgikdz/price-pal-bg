@@ -2,8 +2,9 @@ import { Layout } from '@/components/layout/Layout';
 import { BrochureUpload } from '@/components/admin/BrochureUpload';
 import { RecentUploadsCard } from '@/components/dashboard/RecentUploadsCard';
 import { PriceEditor } from '@/components/admin/PriceEditor';
+import { CsvPriceImport } from '@/components/admin/CsvPriceImport';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Pencil } from 'lucide-react';
+import { Upload, Pencil, FileSpreadsheet } from 'lucide-react';
 
 export default function AdminPage() {
   return (
@@ -12,7 +13,7 @@ export default function AdminPage() {
         <header>
           <h1 className="font-display text-3xl font-bold mb-2">Admin Panel</h1>
           <p className="text-muted-foreground">
-            Upload brochures and manage extracted prices.
+            Upload brochures, import CSV, and manage extracted prices.
           </p>
         </header>
 
@@ -20,7 +21,11 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="upload" className="gap-2">
               <Upload className="h-4 w-4" />
-              Upload
+              Upload PDF
+            </TabsTrigger>
+            <TabsTrigger value="import" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Import CSV
             </TabsTrigger>
             <TabsTrigger value="prices" className="gap-2">
               <Pencil className="h-4 w-4" />
@@ -37,6 +42,10 @@ export default function AdminPage() {
                 <RecentUploadsCard />
               </aside>
             </section>
+          </TabsContent>
+
+          <TabsContent value="import">
+            <CsvPriceImport />
           </TabsContent>
 
           <TabsContent value="prices">
