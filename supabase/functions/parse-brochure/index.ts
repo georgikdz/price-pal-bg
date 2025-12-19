@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Max PDF size in bytes (5MB to stay within worker memory limits)
+const MAX_PDF_SIZE = 5 * 1024 * 1024;
 
 const CANONICAL_PRODUCTS = [
   { id: 'kashkaval', name: 'Yellow Cheese (Kashkaval)', nameBg: 'Кашкавал', category: 'dairy' },
@@ -54,8 +58,7 @@ serve(async (req) => {
     if (!brochureId || !store || (!filePath && !fileUrl)) {
       return new Response(
         JSON.stringify({
-          error:
-            'Missing required fields: brochureId, store, and one of filePath or fileUrl',
+          error: 'Missing required fields: brochureId, store, and one of filePath or fileUrl',
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
@@ -72,51 +75,70 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // IMPORTANT: Avoid downloading/base64-encoding large PDFs in-memory (can exceed worker limits).
-    // We expect the client to pass a short-lived signed URL (fileUrl) whenever possible.
-    let pdfUrlToAnalyze: string | undefined = fileUrl;
+    // Download PDF and convert to base64 (required by AI gateway for PDF analysis)
+    // We use the signed URL passed from the client, or create one from filePath
+    let pdfDownloadUrl: string;
 
-    if (pdfUrlToAnalyze) {
-      const isValidStorageUrl = (() => {
-        try {
-          const u = new URL(pdfUrlToAnalyze);
-          const supabaseOrigin = new URL(supabaseUrl).origin;
-          return (
-            u.origin === supabaseOrigin &&
-            u.pathname.includes('/storage/v1/') &&
-            u.pathname.includes('/brochures/')
-          );
-        } catch {
-          return false;
+    if (fileUrl) {
+      // Validate that it's a Supabase storage URL
+      try {
+        const u = new URL(fileUrl);
+        const supabaseOrigin = new URL(supabaseUrl).origin;
+        if (u.origin !== supabaseOrigin || !u.pathname.includes('/storage/v1/')) {
+          throw new Error('Invalid file URL');
         }
-      })();
-
-      if (!isValidStorageUrl) {
+        pdfDownloadUrl = fileUrl;
+      } catch {
         throw new Error('Invalid file URL');
       }
-    } else if (filePath) {
-      // Fallback: build a public URL (works only if the bucket is public).
-      const encodedPath = String(filePath)
-        .split('/')
-        .map(encodeURIComponent)
-        .join('/');
-      pdfUrlToAnalyze = `${supabaseUrl}/storage/v1/object/public/brochures/${encodedPath}`;
+    } else {
+      // Create a signed URL for the file
+      const { data: signed, error: signError } = await supabase.storage
+        .from('brochures')
+        .createSignedUrl(filePath, 60 * 5);
+
+      if (signError || !signed?.signedUrl) {
+        console.error('Failed to create signed URL:', signError);
+        throw new Error('Failed to access PDF');
+      }
+      pdfDownloadUrl = signed.signedUrl;
     }
 
-    if (!pdfUrlToAnalyze) {
-      throw new Error('Missing PDF URL');
+    console.log('Downloading PDF for analysis...');
+
+    // Fetch the PDF with size limit check
+    const pdfResponse = await fetch(pdfDownloadUrl);
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
     }
 
-    console.log('PDF URL prepared for analysis');
+    // Check Content-Length if available
+    const contentLength = pdfResponse.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_PDF_SIZE) {
+      throw new Error(`PDF too large (${Math.round(parseInt(contentLength, 10) / 1024 / 1024)}MB). Maximum size is 5MB.`);
+    }
 
-    // Use AI to extract product information from the PDF
+    // Read PDF bytes with size limit
+    const pdfBytes = await pdfResponse.arrayBuffer();
+    if (pdfBytes.byteLength > MAX_PDF_SIZE) {
+      throw new Error(`PDF too large (${Math.round(pdfBytes.byteLength / 1024 / 1024)}MB). Maximum size is 5MB.`);
+    }
+
+    console.log(`PDF downloaded: ${Math.round(pdfBytes.byteLength / 1024)}KB`);
+
+    // Convert to base64
+    const base64Pdf = base64Encode(pdfBytes);
+
+    console.log('PDF encoded, calling AI API...');
+
+    // Build AI request
     const productListStr = CANONICAL_PRODUCTS.map(p => 
       `- ${p.id}: ${p.name} / ${p.nameBg}`
     ).join('\n');
 
-    const systemPrompt = `You are an expert at extracting product and price information from Bulgarian grocery store brochures (PDF images).
+    const systemPrompt = `You are an expert at extracting product and price information from Bulgarian grocery store brochures.
 
-Your task is to analyze the brochure and extract all food products with their prices.
+Your task is to analyze the brochure PDF and extract all food products with their prices.
 
 CANONICAL PRODUCTS (use these IDs when matching):
 ${productListStr}
@@ -152,7 +174,7 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
               {
                 type: 'image_url',
                 image_url: {
-                  url: pdfUrlToAnalyze,
+                  url: `data:application/pdf;base64,${base64Pdf}`,
                 },
               },
             ],
@@ -165,7 +187,6 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
       const errorText = await aiResponse.text();
       console.error('AI API error:', errorText);
       
-      // Handle rate limiting
       if (aiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please try again later.');
       }
@@ -178,12 +199,11 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content || '[]';
     
-    console.log('AI response content:', content);
+    console.log('AI response received, parsing...');
 
     // Parse the extracted products
     let extractedProducts = [];
     try {
-      // Try to extract JSON from the response
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         extractedProducts = JSON.parse(jsonMatch[0]);
@@ -239,7 +259,6 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
 
         if (pricesError) {
           console.error('Error inserting prices:', pricesError);
-          // Don't throw, just log - products are already inserted
         } else {
           console.log(`Inserted ${pricesToInsert.length} prices`);
         }
@@ -270,7 +289,6 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     );
 
   } catch (error) {
-    // Log full error details server-side for debugging
     console.error('Error processing brochure:', error);
     
     // Try to update brochure status to failed
@@ -289,24 +307,24 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
       console.error('Failed to update brochure status:', e);
     }
 
-
-    // Return generic user-facing error messages (avoid leaking internal details)
+    // Return user-friendly error messages
     let userMessage = 'Failed to process brochure';
     let statusCode = 500;
 
     if (error instanceof Error) {
-      // Map specific errors to safe messages without revealing internals
-      if (error.message.includes('Rate limit')) {
+      if (error.message.includes('too large')) {
+        userMessage = error.message;
+        statusCode = 400;
+      } else if (error.message.includes('Rate limit')) {
         userMessage = 'Service temporarily unavailable. Please try again later.';
         statusCode = 503;
       } else if (error.message.includes('credits')) {
         userMessage = 'Processing service unavailable';
         statusCode = 503;
-      } else if (error.message.includes('PDF') || error.message.includes('fetch')) {
+      } else if (error.message.includes('PDF') || error.message.includes('fetch') || error.message.includes('download')) {
         userMessage = 'Failed to process PDF file';
         statusCode = 400;
       }
-      // Don't reveal other internal errors (API keys, config, DB schema, etc.)
     }
 
     return new Response(
