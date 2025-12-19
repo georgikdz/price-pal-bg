@@ -238,6 +238,7 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     );
 
   } catch (error) {
+    // Log full error details server-side for debugging
     console.error('Error processing brochure:', error);
     
     // Try to update brochure status to failed
@@ -257,9 +258,28 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
       console.error('Failed to update brochure status:', e);
     }
 
+    // Return generic user-facing error messages (avoid leaking internal details)
+    let userMessage = 'Failed to process brochure';
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      // Map specific errors to safe messages without revealing internals
+      if (error.message.includes('Rate limit')) {
+        userMessage = 'Service temporarily unavailable. Please try again later.';
+        statusCode = 503;
+      } else if (error.message.includes('credits')) {
+        userMessage = 'Processing service unavailable';
+        statusCode = 503;
+      } else if (error.message.includes('PDF') || error.message.includes('fetch')) {
+        userMessage = 'Failed to process PDF file';
+        statusCode = 400;
+      }
+      // Don't reveal other internal errors (API keys, config, DB schema, etc.)
+    }
+
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: userMessage }),
+      { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
