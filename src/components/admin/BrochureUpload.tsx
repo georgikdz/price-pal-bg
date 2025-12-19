@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Store } from '@/types';
@@ -12,6 +12,7 @@ interface UploadedFile {
   id: string;
   store: Store;
   fileName: string;
+  filePath: string;
   uploadedAt: Date;
   status: 'processing' | 'completed' | 'failed';
   productsFound?: number;
@@ -21,6 +22,7 @@ export function BrochureUpload() {
   const [selectedStore, setSelectedStore] = useState<Store>('billa');
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
@@ -48,10 +50,81 @@ export function BrochureUpload() {
         id: u.id,
         store: u.store as Store,
         fileName: u.file_name,
+        filePath: u.file_path,
         uploadedAt: new Date(u.created_at),
         status: u.status as 'processing' | 'completed' | 'failed',
         productsFound: u.products_found || undefined,
       })));
+    }
+  };
+
+  const handleRetry = async (upload: UploadedFile) => {
+    setRetryingId(upload.id);
+
+    try {
+      // Update status to processing
+      await supabase
+        .from('brochure_uploads')
+        .update({ status: 'processing', products_found: 0 })
+        .eq('id', upload.id);
+
+      // Update local state
+      setUploads(prev => prev.map(u => 
+        u.id === upload.id ? { ...u, status: 'processing' as const, productsFound: undefined } : u
+      ));
+
+      toast({
+        title: 'Retrying processing',
+        description: `Re-processing ${upload.fileName}...`,
+      });
+
+      // Create a signed URL for the existing file
+      const { data: signed, error: signError } = await supabase.storage
+        .from('brochures')
+        .createSignedUrl(upload.filePath, 60 * 15);
+
+      if (signError || !signed?.signedUrl) {
+        throw new Error('Failed to access stored brochure');
+      }
+
+      // Trigger PDF parsing
+      const { error: fnError } = await supabase.functions.invoke('parse-brochure', {
+        body: {
+          brochureId: upload.id,
+          fileUrl: signed.signedUrl,
+          store: upload.store,
+        },
+      });
+
+      if (fnError) {
+        console.error('Edge function error:', fnError);
+        setUploads(prev => prev.map(u => 
+          u.id === upload.id ? { ...u, status: 'failed' as const } : u
+        ));
+        toast({
+          title: 'Processing failed',
+          description: 'Failed to extract products from the brochure',
+          variant: 'destructive',
+        });
+      } else {
+        setTimeout(fetchUploads, 2000);
+        toast({
+          title: 'Processing complete',
+          description: 'Products have been extracted and matched',
+        });
+      }
+    } catch (error) {
+      console.error('Retry error:', error);
+      setUploads(prev => prev.map(u => 
+        u.id === upload.id ? { ...u, status: 'failed' as const } : u
+      ));
+      toast({
+        title: 'Retry failed',
+        description: error instanceof Error ? error.message : 'Failed to retry processing',
+        variant: 'destructive',
+      });
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -101,6 +174,7 @@ export function BrochureUpload() {
         id: brochureRecord.id,
         store: selectedStore,
         fileName: file.name,
+        filePath: fileName,
         uploadedAt: new Date(),
         status: 'processing',
       };
@@ -286,10 +360,26 @@ export function BrochureUpload() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {upload.productsFound !== undefined && (
+                  {upload.productsFound !== undefined && upload.status === 'completed' && (
                     <span className="text-sm text-muted-foreground">
                       {upload.productsFound} products
                     </span>
+                  )}
+                  {upload.status === 'failed' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRetry(upload)}
+                      disabled={retryingId === upload.id}
+                      className="gap-1.5 text-xs h-7 px-2"
+                    >
+                      {retryingId === upload.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
+                      Retry
+                    </Button>
                   )}
                   {getStatusIcon(upload.status)}
                 </div>
