@@ -7,7 +7,8 @@ import { STORE_INFO } from '@/data/products';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { pdfToImages, estimateImagesSize } from '@/lib/pdfToImages';
+import { pdfToImages, estimateImagesSize, type PDFConversionProgress } from '@/lib/pdfToImages';
+import { Progress } from '@/components/ui/progress';
 
 interface UploadedFile {
   id: string;
@@ -24,6 +25,7 @@ export function BrochureUpload() {
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [pdfProgress, setPdfProgress] = useState<PDFConversionProgress | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
@@ -96,12 +98,9 @@ export function BrochureUpload() {
       const pdfBlob = await pdfResponse.blob();
       const pdfFile = new File([pdfBlob], upload.fileName, { type: 'application/pdf' });
 
-      toast({
-        title: 'Processing PDF',
-        description: 'Converting pages to images...',
-      });
+      setPdfProgress({ currentPage: 0, totalPages: 0 });
 
-      const images = await pdfToImages(pdfFile, 10, 1.5, 0.7);
+      const images = await pdfToImages(pdfFile, 10, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Failed to extract pages from PDF');
@@ -150,6 +149,7 @@ export function BrochureUpload() {
       });
     } finally {
       setRetryingId(null);
+      setPdfProgress(null);
     }
   };
 
@@ -170,15 +170,11 @@ export function BrochureUpload() {
     }
 
     setIsUploading(true);
+    setPdfProgress({ currentPage: 0, totalPages: 0 });
 
     try {
       // Convert PDF pages to images client-side (bypasses PDF size limit)
-      toast({
-        title: 'Processing PDF',
-        description: 'Converting pages to images...',
-      });
-
-      const images = await pdfToImages(file, MAX_PAGES, 1.5, 0.7);
+      const images = await pdfToImages(file, MAX_PAGES, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Failed to extract pages from PDF');
@@ -269,6 +265,7 @@ export function BrochureUpload() {
       });
     } finally {
       setIsUploading(false);
+      setPdfProgress(null);
       e.target.value = '';
     }
   };
@@ -325,9 +322,18 @@ export function BrochureUpload() {
               <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
             )}
             <p className="font-medium mb-1">
-              {isUploading ? 'Uploading and processing...' : 'Drop PDF here or click to upload'}
+              {isUploading 
+                ? pdfProgress && pdfProgress.totalPages > 0
+                  ? `Converting page ${pdfProgress.currentPage} of ${pdfProgress.totalPages}...`
+                  : 'Processing...'
+                : 'Drop PDF here or click to upload'}
             </p>
-            <p className="text-sm text-muted-foreground">
+            {isUploading && pdfProgress && pdfProgress.totalPages > 0 && (
+              <div className="w-48 mx-auto mt-2">
+                <Progress value={(pdfProgress.currentPage / pdfProgress.totalPages) * 100} className="h-2" />
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">
               Upload the weekly brochure for {STORE_INFO[selectedStore].name}
             </p>
           </div>
