@@ -18,9 +18,10 @@ const adminNavItems = [
 export function Header() {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin(user?.id);
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user?.id);
 
-  const navItems = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems;
+  // Show admin links while we're verifying role to avoid "missing Admin" UX.
+  const navItems = isAdmin || adminLoading ? [...publicNavItems, ...adminNavItems] : publicNavItems;
 
 
   const handleSignOut = async () => {

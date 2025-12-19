@@ -14,9 +14,10 @@ const adminNavItems = [{ path: '/admin', label: 'Admin', icon: Settings }];
 export function MobileNav() {
   const location = useLocation();
   const { user } = useAuth();
-  const { isAdmin } = useIsAdmin(user?.id);
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user?.id);
 
-  const navItems = isAdmin ? [...publicNavItems, ...adminNavItems] : publicNavItems;
+  // Show admin link while role is being verified to avoid "missing Admin" UX.
+  const navItems = isAdmin || adminLoading ? [...publicNavItems, ...adminNavItems] : publicNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-pb">
