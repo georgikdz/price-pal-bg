@@ -44,13 +44,20 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let brochureId: string | undefined;
+
   try {
-    const { brochureId, filePath, fileUrl, store } = await req.json();
-    
+    const body = await req.json();
+    brochureId = body?.brochureId;
+    const { filePath, fileUrl, store } = body ?? {};
+
     if (!brochureId || !store || (!filePath && !fileUrl)) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: brochureId, store, and one of filePath or fileUrl' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error:
+            'Missing required fields: brochureId, store, and one of filePath or fileUrl',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -65,31 +72,26 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch the PDF file (prefer downloading from storage when filePath is provided)
-    let pdfBuffer: ArrayBuffer;
+    // IMPORTANT: Avoid downloading/base64-encoding large PDFs in-memory (can exceed worker limits).
+    // Instead, create a short-lived URL and let the AI gateway fetch the file.
+    let pdfUrlToAnalyze: string;
+
     if (filePath) {
-      const { data: pdfBlob, error: downloadError } = await supabase.storage
+      const { data: signed, error: signError } = await supabase.storage
         .from('brochures')
-        .download(filePath);
+        .createSignedUrl(filePath, 60 * 15);
 
-      if (downloadError || !pdfBlob) {
-        console.error('Failed to download brochure from storage:', downloadError);
-        throw new Error('Failed to download PDF');
+      if (signError || !signed?.signedUrl) {
+        console.error('Failed to create signed URL for brochure:', signError);
+        throw new Error('Failed to access PDF');
       }
 
-      pdfBuffer = await pdfBlob.arrayBuffer();
+      pdfUrlToAnalyze = signed.signedUrl;
     } else {
-      // Backward compatibility: allow passing a URL
-      const pdfResponse = await fetch(fileUrl);
-      if (!pdfResponse.ok) {
-        throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`);
-      }
-      pdfBuffer = await pdfResponse.arrayBuffer();
+      pdfUrlToAnalyze = fileUrl;
     }
-    
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
-    console.log(`PDF fetched successfully, size: ${pdfBuffer.byteLength} bytes`);
+    console.log('PDF URL prepared for analysis');
 
     // Use AI to extract product information from the PDF
     const productListStr = CANONICAL_PRODUCTS.map(p => 
@@ -124,21 +126,21 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
+          {
+            role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Analyze this ${store} grocery brochure PDF and extract all food products with prices. Return ONLY valid JSON array.`
+                text: `Analyze this ${store} grocery brochure PDF and extract all food products with prices. Return ONLY valid JSON array.`,
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:application/pdf;base64,${base64Pdf}`
-                }
-              }
-            ]
-          }
+                  url: pdfUrlToAnalyze,
+                },
+              },
+            ],
+          },
         ],
       }),
     });
@@ -257,12 +259,11 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     
     // Try to update brochure status to failed
     try {
-      const { brochureId } = await req.clone().json();
       if (brochureId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
-        
+
         await supabase
           .from('brochure_uploads')
           .update({ status: 'failed' })
@@ -271,6 +272,7 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     } catch (e) {
       console.error('Failed to update brochure status:', e);
     }
+
 
     // Return generic user-facing error messages (avoid leaking internal details)
     let userMessage = 'Failed to process brochure';
