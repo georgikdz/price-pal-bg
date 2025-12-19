@@ -73,19 +73,13 @@ export function BrochureUpload() {
     try {
       // Upload file to storage
       const fileName = `${selectedStore}/${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('brochures')
         .upload(fileName, file);
 
       if (uploadError) {
         throw uploadError;
       }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('brochures')
-        .getPublicUrl(fileName);
-
       // Create database record
       const { data: brochureRecord, error: dbError } = await supabase
         .from('brochure_uploads')
@@ -117,11 +111,11 @@ export function BrochureUpload() {
         description: `Processing ${file.name} for ${STORE_INFO[selectedStore].name}`,
       });
 
-      // Trigger PDF parsing edge function
+      // Trigger PDF parsing backend function
       const { error: fnError } = await supabase.functions.invoke('parse-brochure', {
         body: {
           brochureId: brochureRecord.id,
-          fileUrl: publicUrl,
+          filePath: fileName,
           store: selectedStore,
         },
       });
