@@ -100,7 +100,7 @@ export function BrochureUpload() {
 
       setPdfProgress({ currentPage: 0, totalPages: 0 });
 
-      const images = await pdfToImages(pdfFile, 10, 1.5, 0.7, setPdfProgress);
+      const images = await pdfToImages(pdfFile, Infinity, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Failed to extract pages from PDF');
@@ -153,9 +153,6 @@ export function BrochureUpload() {
     }
   };
 
-  // Max pages to process (to keep API request size reasonable)
-  const MAX_PAGES = 10;
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -174,7 +171,7 @@ export function BrochureUpload() {
 
     try {
       // Convert PDF pages to images client-side (bypasses PDF size limit)
-      const images = await pdfToImages(file, MAX_PAGES, 1.5, 0.7, setPdfProgress);
+      const images = await pdfToImages(file, Infinity, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Failed to extract pages from PDF');
