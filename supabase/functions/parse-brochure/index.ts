@@ -73,22 +73,38 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // IMPORTANT: Avoid downloading/base64-encoding large PDFs in-memory (can exceed worker limits).
-    // Instead, create a short-lived URL and let the AI gateway fetch the file.
-    let pdfUrlToAnalyze: string;
+    // We expect the client to pass a short-lived signed URL (fileUrl) whenever possible.
+    let pdfUrlToAnalyze: string | undefined = fileUrl;
 
-    if (filePath) {
-      const { data: signed, error: signError } = await supabase.storage
-        .from('brochures')
-        .createSignedUrl(filePath, 60 * 15);
+    if (pdfUrlToAnalyze) {
+      const isValidStorageUrl = (() => {
+        try {
+          const u = new URL(pdfUrlToAnalyze);
+          const supabaseOrigin = new URL(supabaseUrl).origin;
+          return (
+            u.origin === supabaseOrigin &&
+            u.pathname.includes('/storage/v1/') &&
+            u.pathname.includes('/brochures/')
+          );
+        } catch {
+          return false;
+        }
+      })();
 
-      if (signError || !signed?.signedUrl) {
-        console.error('Failed to create signed URL for brochure:', signError);
-        throw new Error('Failed to access PDF');
+      if (!isValidStorageUrl) {
+        throw new Error('Invalid file URL');
       }
+    } else if (filePath) {
+      // Fallback: build a public URL (works only if the bucket is public).
+      const encodedPath = String(filePath)
+        .split('/')
+        .map(encodeURIComponent)
+        .join('/');
+      pdfUrlToAnalyze = `${supabaseUrl}/storage/v1/object/public/brochures/${encodedPath}`;
+    }
 
-      pdfUrlToAnalyze = signed.signedUrl;
-    } else {
-      pdfUrlToAnalyze = fileUrl;
+    if (!pdfUrlToAnalyze) {
+      throw new Error('Missing PDF URL');
     }
 
     console.log('PDF URL prepared for analysis');
