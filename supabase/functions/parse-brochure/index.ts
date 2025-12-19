@@ -90,16 +90,32 @@ Your task is to analyze the brochure page images and extract all food products w
 CANONICAL PRODUCTS (use these IDs when matching):
 ${productListStr}
 
+CRITICAL PRICE EXTRACTION RULES:
+- Prices in Bulgarian brochures are in BGN (лв.)
+- Look for the LARGE displayed price - this is usually the promotional/sale price
+- The smaller crossed-out or "was" price is the regular price
+- Common Bulgarian price labels: "САМО" (only), "ЦЕНА" (price), "лв." or "лв" (BGN currency)
+- Pay attention to price per unit labels like "за кг" (per kg), "за бр." (per piece), "за л" (per liter)
+- Typical grocery prices in Bulgaria:
+  * Fruits/vegetables: 1-5 BGN/kg (e.g., cucumbers ~2-4 BGN/kg, tomatoes ~2-5 BGN/kg)
+  * Meat: 8-20 BGN/kg
+  * Dairy: 2-15 BGN depending on size
+  * If a price seems unusually low (like 0.05 BGN/kg), double-check the decimal point
+- Watch for prices shown as "X.XX лв./кг" which means price per kilogram
+
 For each product found, extract:
-1. raw_name: The exact product name as written in the brochure (in Bulgarian or English)
-2. raw_price: The regular price in BGN (just the number, e.g., 5.99)
-3. raw_unit: The unit/quantity (e.g., "1 kg", "500g", "1 L", "1 бр.")
-4. promo_price: The promotional price if on sale (just the number), or null if not on sale
+1. raw_name: The exact product name as written in the brochure (in Bulgarian)
+2. raw_price: The ORIGINAL/REGULAR price in BGN (the higher price, often crossed out). Just the number, e.g., 5.99
+3. raw_unit: The unit/quantity (e.g., "1 kg", "500g", "1 L", "1 бр.", "за кг")
+4. promo_price: The PROMOTIONAL/SALE price (the lower, highlighted price), or null if not on sale
 5. mapped_product_id: The best matching canonical product ID from the list above, or null if no match
 6. confidence_score: Your confidence in the mapping (0.0 to 1.0)
 
+IMPORTANT: If both prices are shown (crossed out and sale price), raw_price = original/crossed out price, promo_price = sale price.
+If only one price is shown, that's the raw_price and promo_price should be null.
+
 Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
-[{"raw_name":"Кашкавал Витоша","raw_price":15.99,"raw_unit":"1 kg","promo_price":12.99,"mapped_product_id":"kashkaval","confidence_score":0.95}]`;
+[{"raw_name":"Краставици","raw_price":3.99,"raw_unit":"1 кг","promo_price":2.49,"mapped_product_id":"cucumbers","confidence_score":0.95}]`;
 
     // Build content array with all images
     const userContent: any[] = [
