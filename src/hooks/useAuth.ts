@@ -60,13 +60,18 @@ export function useIsAdmin(userId?: string) {
     if (!userId) return false;
     return adminCache.get(userId) ?? false;
   });
+
+  // IMPORTANT: If the cached value is false (or missing), treat it as "needs verification".
+  // This prevents stale "not admin" caches from hiding admin UI / causing redirects
+  // right after an admin role is granted.
   const [loading, setLoading] = useState<boolean>(() => {
     if (!userId) return false;
-    return !adminCache.has(userId);
+    const cached = adminCache.get(userId);
+    return cached !== true;
   });
 
   // IMPORTANT: when userId changes from undefined -> real id, we must immediately
-  // enter a "loading" state (unless cached), otherwise route guards can redirect
+  // enter a "loading" state (unless cached true), otherwise route guards can redirect
   // before the admin check completes.
   useLayoutEffect(() => {
     if (!userId) {
@@ -76,8 +81,10 @@ export function useIsAdmin(userId?: string) {
     }
 
     if (adminCache.has(userId)) {
-      setIsAdmin(adminCache.get(userId) ?? false);
-      setLoading(false);
+      const cached = adminCache.get(userId) ?? false;
+      setIsAdmin(cached);
+      // If cached=false, we still verify before allowing redirects/hiding admin UI.
+      setLoading(cached !== true);
     } else {
       setIsAdmin(false);
       setLoading(true);
@@ -89,7 +96,6 @@ export function useIsAdmin(userId?: string) {
 
     async function checkAdmin() {
       if (!userId) return;
-      if (adminCache.has(userId)) return;
 
       const { data, error } = await supabase
         .from('user_roles')
@@ -106,6 +112,7 @@ export function useIsAdmin(userId?: string) {
       setLoading(false);
     }
 
+    // Always verify on mount / user change; it's cheap and avoids stale role caches.
     checkAdmin();
 
     return () => {
@@ -115,5 +122,6 @@ export function useIsAdmin(userId?: string) {
 
   return { isAdmin, loading };
 }
+
 
 
