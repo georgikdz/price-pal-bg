@@ -111,11 +111,20 @@ export function BrochureUpload() {
         description: `Processing ${file.name} for ${STORE_INFO[selectedStore].name}`,
       });
 
+      // Create a short-lived URL for the uploaded PDF (keeps the backend function lightweight)
+      const { data: signed, error: signError } = await supabase.storage
+        .from('brochures')
+        .createSignedUrl(fileName, 60 * 15);
+
+      if (signError || !signed?.signedUrl) {
+        throw new Error('Failed to create brochure link for processing');
+      }
+
       // Trigger PDF parsing backend function
       const { error: fnError } = await supabase.functions.invoke('parse-brochure', {
         body: {
           brochureId: brochureRecord.id,
-          filePath: fileName,
+          fileUrl: signed.signedUrl,
           store: selectedStore,
         },
       });
