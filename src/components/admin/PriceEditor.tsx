@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePrices, Price } from '@/hooks/usePrices';
+import { usePrices, usePriceHistory, Price } from '@/hooks/usePrices';
 import { useUpdatePrice, useDeletePrice } from '@/hooks/usePriceEditor';
 import { CANONICAL_PRODUCTS, STORE_INFO } from '@/data/products';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +10,94 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, AlertTriangle, Check, X } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle, Check, X, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Store colors for chart
+const STORE_COLORS: Record<string, string> = {
+  billa: '#FF6B00',
+  kaufland: '#E31E24',
+  lidl: '#0050AA',
+};
+
+function PriceHistoryChart({ productId }: { productId: string }) {
+  const { data: history, isLoading } = usePriceHistory(productId);
+  const product = CANONICAL_PRODUCTS.find(p => p.id === productId);
+
+  if (isLoading) {
+    return <Skeleton className="h-[250px] w-full" />;
+  }
+
+  if (!history || history.length === 0) {
+    return (
+      <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+        No price history available for this product
+      </div>
+    );
+  }
+
+  // Transform data for chart - group by date and show prices by store
+  const dateMap = new Map<string, Record<string, number>>();
+  for (const price of history) {
+    const date = new Date(price.extracted_at).toLocaleDateString('bg-BG');
+    const existing = dateMap.get(date) || {};
+    const effectivePrice = price.promo_price || price.price;
+    existing[price.store] = effectivePrice;
+    dateMap.set(date, existing);
+  }
+
+  const chartData = Array.from(dateMap.entries()).map(([date, stores]) => ({
+    date,
+    ...stores,
+  }));
+
+  const storesInData = new Set(history.map(p => p.store));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-lg">{product?.icon}</span>
+        <span className="font-medium">{product?.nameBg}</span>
+        <span className="text-muted-foreground">- Price History</span>
+      </div>
+      <ResponsiveContainer width="100%" height={250}>
+        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis dataKey="date" fontSize={12} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+          <YAxis 
+            fontSize={12} 
+            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+            tickFormatter={(value) => `${value.toFixed(2)} лв`}
+          />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'hsl(var(--card))', 
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '8px',
+            }}
+            formatter={(value: number) => [`${value.toFixed(2)} лв`, '']}
+          />
+          <Legend />
+          {Array.from(storesInData).map(store => (
+            <Line
+              key={store}
+              type="monotone"
+              dataKey={store}
+              name={STORE_INFO[store as keyof typeof STORE_INFO]?.name || store}
+              stroke={STORE_COLORS[store] || '#888'}
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              connectNulls
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 export function PriceEditor() {
   const { data: prices, isLoading } = usePrices();
@@ -23,6 +109,7 @@ export function PriceEditor() {
   const [editingPrice, setEditingPrice] = useState<Price | null>(null);
   const [editForm, setEditForm] = useState({ price: '', promo_price: '', unit: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showHistoryChart, setShowHistoryChart] = useState(false);
 
   const getProductInfo = (productId: string) => {
     return CANONICAL_PRODUCTS.find(p => p.id === productId);
@@ -158,6 +245,28 @@ export function PriceEditor() {
               </Select>
             </div>
           </div>
+
+          {/* Price History Chart */}
+          {filterProduct !== 'all' && (
+            <Collapsible open={showHistoryChart} onOpenChange={setShowHistoryChart}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Price History Chart
+                  </span>
+                  {showHistoryChart ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-4">
+                <Card>
+                  <CardContent className="pt-4">
+                    <PriceHistoryChart productId={filterProduct} />
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* Price count */}
           <p className="text-sm text-muted-foreground">
