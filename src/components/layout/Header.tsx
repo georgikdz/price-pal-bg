@@ -3,6 +3,8 @@ import { BarChart3, ShoppingCart, Settings, TrendingDown, GitCompare, LogIn, Log
 import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
 
 const publicNavItems = [
   { path: '/', label: 'Dashboard', icon: BarChart3 },
@@ -67,7 +69,17 @@ export function Header() {
             <span className="h-2 w-2 rounded-full bg-store-kaufland" />
             <span className="h-2 w-2 rounded-full bg-store-lidl" />
           </div>
-          
+
+          {user && (
+            <Badge
+              variant={adminLoading ? "secondary" : isAdmin ? "success" : "outline"}
+              aria-label="Current access level"
+              className="hidden sm:inline-flex"
+            >
+              {adminLoading ? 'Checking role…' : isAdmin ? 'Admin' : 'User'}
+            </Badge>
+          )}
+
           {user ? (
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
               <LogOut className="h-4 w-4" />
