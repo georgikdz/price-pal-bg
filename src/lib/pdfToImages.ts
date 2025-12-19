@@ -10,18 +10,25 @@ export interface PDFPageImage {
   height: number;
 }
 
+export interface PDFConversionProgress {
+  currentPage: number;
+  totalPages: number;
+}
+
 /**
  * Convert PDF pages to JPEG images
  * @param file PDF file to convert
  * @param maxPages Maximum number of pages to convert (default: 10)
  * @param scale Scale factor for rendering (default: 1.5 for good quality while keeping size down)
  * @param quality JPEG quality 0-1 (default: 0.7)
+ * @param onProgress Callback for progress updates
  */
 export async function pdfToImages(
   file: File,
   maxPages = 10,
   scale = 1.5,
-  quality = 0.7
+  quality = 0.7,
+  onProgress?: (progress: PDFConversionProgress) => void
 ): Promise<PDFPageImage[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -30,6 +37,9 @@ export async function pdfToImages(
   const images: PDFPageImage[] = [];
 
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+    // Report progress before processing each page
+    onProgress?.({ currentPage: pageNum, totalPages: numPages });
+    
     const page = await pdf.getPage(pageNum);
     const viewport = page.getViewport({ scale });
 
