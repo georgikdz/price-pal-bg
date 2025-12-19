@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, AlertTriangle, Check, X, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle, Check, X, TrendingUp, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { pricesToCsv, downloadCsv } from '@/lib/csvUtils';
 
 // Store colors for chart
 const STORE_COLORS: Record<string, string> = {
@@ -202,13 +203,42 @@ export function PriceEditor() {
     );
   }
 
+  const handleExportCsv = () => {
+    const pricesToExport = filteredPrices.length > 0 ? filteredPrices : (prices || []);
+    if (pricesToExport.length === 0) {
+      toast({
+        title: 'No prices to export',
+        description: 'There are no prices matching your filters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const csv = pricesToCsv(pricesToExport);
+    const storePart = filterStore !== 'all' ? `_${filterStore}` : '';
+    const productPart = filterProduct !== 'all' ? `_${filterProduct}` : '';
+    const filename = `prices${storePart}${productPart}_${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCsv(csv, filename);
+
+    toast({
+      title: 'Export successful',
+      description: `Exported ${pricesToExport.length} prices to ${filename}`,
+    });
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Pencil className="h-5 w-5" />
-            Price Editor
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Price Editor
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-2">
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
