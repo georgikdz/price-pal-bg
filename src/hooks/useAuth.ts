@@ -97,16 +97,15 @@ export function useIsAdmin(userId?: string) {
     async function checkAdmin() {
       if (!userId) return;
 
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
+      // Prefer the backend role-check function (handles duplicates and avoids RLS edge cases)
+      const { data, error } = await supabase.rpc('has_role', {
+        _user_id: userId,
+        _role: 'admin',
+      });
 
       if (cancelled) return;
 
-      const nextIsAdmin = !error && !!data;
+      const nextIsAdmin = !error && data === true;
       adminCache.set(userId, nextIsAdmin);
       setIsAdmin(nextIsAdmin);
       setLoading(false);
