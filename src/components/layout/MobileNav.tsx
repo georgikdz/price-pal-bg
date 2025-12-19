@@ -4,12 +4,12 @@ import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 
 const publicNavItems = [
-  { path: '/', label: 'Dashboard', icon: BarChart3 },
-  { path: '/compare', label: 'Compare', icon: ShoppingCart },
-  { path: '/trends', label: 'Trends', icon: TrendingDown },
+  { path: '/', label: 'Начало', icon: BarChart3 },
+  { path: '/compare', label: 'Сравнение', icon: ShoppingCart },
+  { path: '/trends', label: 'Тенденции', icon: TrendingDown },
 ];
 
-const adminNavItems = [{ path: '/admin', label: 'Admin', icon: Settings }];
+const adminNavItems = [{ path: '/admin', label: 'Админ', icon: Settings }];
 
 export function MobileNav() {
   const location = useLocation();
@@ -39,4 +39,3 @@ export function MobileNav() {
     </nav>
   );
 }
-

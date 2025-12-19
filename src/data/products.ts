@@ -108,14 +108,14 @@ export const MOCK_PRICES: StorePrice[] = CANONICAL_PRODUCTS.flatMap(product => {
 });
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  dairy: 'Dairy & Eggs',
-  oils: 'Oils',
-  grains: 'Bread & Grains',
-  produce: 'Fresh Produce',
-  proteins: 'Meat & Proteins',
-  pantry: 'Pantry Staples',
-  snacks: 'Snacks',
-  beverages: 'Beverages',
+  dairy: 'Млечни и яйца',
+  oils: 'Олио',
+  grains: 'Хляб и зърнени',
+  produce: 'Пресни плодове и зеленчуци',
+  proteins: 'Месо и протеини',
+  pantry: 'Основни продукти',
+  snacks: 'Снаксове',
+  beverages: 'Напитки',
 };
 
 export const STORE_INFO: Record<Store, { name: string; color: string; logo: string }> = {

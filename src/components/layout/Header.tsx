@@ -7,13 +7,13 @@ import { Badge } from '@/components/ui/badge';
 
 
 const publicNavItems = [
-  { path: '/', label: 'Dashboard', icon: BarChart3 },
-  { path: '/compare', label: 'Compare', icon: ShoppingCart },
-  { path: '/trends', label: 'Trends', icon: TrendingDown },
+  { path: '/', label: 'Начало', icon: BarChart3 },
+  { path: '/compare', label: 'Сравнение', icon: ShoppingCart },
+  { path: '/trends', label: 'Тенденции', icon: TrendingDown },
 ];
 
 const adminNavItems = [
-  { path: '/admin', label: 'Admin', icon: Settings },
+  { path: '/admin', label: 'Админ', icon: Settings },
 ];
 
 export function Header() {
@@ -40,7 +40,7 @@ export function Header() {
             <h1 className="font-display text-lg font-bold text-foreground leading-none">
               ЦениБГ
             </h1>
-            <p className="text-xs text-muted-foreground">Price Tracker</p>
+            <p className="text-xs text-muted-foreground">Сравнение на цени</p>
           </div>
         </Link>
 
@@ -72,23 +72,23 @@ export function Header() {
           {user && (
             <Badge
               variant={adminLoading ? "secondary" : isAdmin ? "success" : "outline"}
-              aria-label="Current access level"
+              aria-label="Ниво на достъп"
               className="hidden sm:inline-flex"
             >
-              {adminLoading ? 'Checking role…' : isAdmin ? 'Admin' : 'User'}
+              {adminLoading ? 'Проверка…' : isAdmin ? 'Админ' : 'Потребител'}
             </Badge>
           )}
 
           {user ? (
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
               <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">Изход</span>
             </Button>
           ) : (
             <Link to="/auth">
               <Button variant="ghost" size="sm" className="gap-2">
                 <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">Login</span>
+                <span className="hidden sm:inline">Вход</span>
               </Button>
             </Link>
           )}

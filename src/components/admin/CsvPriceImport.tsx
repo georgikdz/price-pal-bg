@@ -23,8 +23,8 @@ export function CsvPriceImport() {
 
     if (!file.name.endsWith('.csv')) {
       toast({
-        title: 'Invalid file type',
-        description: 'Please upload a CSV file',
+        title: 'Невалиден тип файл',
+        description: 'Моля, качете CSV файл',
         variant: 'destructive',
       });
       return;
@@ -40,14 +40,14 @@ export function CsvPriceImport() {
 
       if (result.errorCount > 0) {
         toast({
-          title: 'CSV parsed with errors',
-          description: `${result.validCount} valid rows, ${result.errorCount} rows with errors`,
+          title: 'CSV разпознат с грешки',
+          description: `${result.validCount} валидни реда, ${result.errorCount} реда с грешки`,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'CSV parsed successfully',
-          description: `${result.validCount} rows ready to import`,
+          title: 'CSV разпознат успешно',
+          description: `${result.validCount} реда готови за импорт`,
         });
       }
     };
@@ -57,10 +57,10 @@ export function CsvPriceImport() {
 
   const handleDownloadTemplate = () => {
     const template = generateCsvTemplate();
-    downloadCsv(template, 'price_import_template.csv');
+    downloadCsv(template, 'шаблон_за_импорт_на_цени.csv');
     toast({
-      title: 'Template downloaded',
-      description: 'Fill in the template and upload it to import prices',
+      title: 'Шаблонът е изтеглен',
+      description: 'Попълнете шаблона и го качете, за да импортирате цени',
     });
   };
 
@@ -72,22 +72,22 @@ export function CsvPriceImport() {
       
       if (result.successCount > 0) {
         toast({
-          title: 'Import successful',
-          description: `${result.successCount} prices imported${result.failedCount > 0 ? `, ${result.failedCount} failed` : ''}`,
+          title: 'Успешен импорт',
+          description: `${result.successCount} цени импортирани${result.failedCount > 0 ? `, ${result.failedCount} неуспешни` : ''}`,
         });
         setParseResult(null);
         setFileName('');
       } else {
         toast({
-          title: 'Import failed',
+          title: 'Неуспешен импорт',
           description: result.errors.join(', '),
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: 'Import error',
-        description: error instanceof Error ? error.message : 'Failed to import prices',
+        title: 'Грешка при импорт',
+        description: error instanceof Error ? error.message : 'Неуспешен импорт на цени',
         variant: 'destructive',
       });
     }
@@ -110,14 +110,14 @@ export function CsvPriceImport() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Import Prices from CSV
+            Импорт на цени от CSV
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-4">
             <Button onClick={handleDownloadTemplate} variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
-              Download Template
+              Изтегли шаблон
             </Button>
             <Button
               onClick={() => inputRef.current?.click()}
@@ -125,7 +125,7 @@ export function CsvPriceImport() {
               className="gap-2"
             >
               <Upload className="h-4 w-4" />
-              Upload CSV
+              Качи CSV
             </Button>
             <input
               ref={inputRef}
@@ -137,17 +137,17 @@ export function CsvPriceImport() {
           </div>
 
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-1">Required columns:</p>
+            <p className="font-medium mb-1">Задължителни колони:</p>
             <ul className="list-disc list-inside space-y-0.5">
-              <li><code className="bg-muted px-1 rounded">product_id</code> - Product identifier (e.g., cucumbers, milk)</li>
-              <li><code className="bg-muted px-1 rounded">store</code> - Store name (billa, kaufland, lidl)</li>
-              <li><code className="bg-muted px-1 rounded">price</code> - Regular price</li>
+              <li><code className="bg-muted px-1 rounded">product_id</code> - Идентификатор на продукт (напр. cucumbers, milk)</li>
+              <li><code className="bg-muted px-1 rounded">store</code> - Име на магазин (billa, kaufland, lidl)</li>
+              <li><code className="bg-muted px-1 rounded">price</code> - Редовна цена</li>
             </ul>
-            <p className="font-medium mt-3 mb-1">Optional columns:</p>
+            <p className="font-medium mt-3 mb-1">Незадължителни колони:</p>
             <ul className="list-disc list-inside space-y-0.5">
-              <li><code className="bg-muted px-1 rounded">promo_price</code> - Promotional price</li>
-              <li><code className="bg-muted px-1 rounded">unit</code> - Unit (e.g., kg, 1L, 500g)</li>
-              <li><code className="bg-muted px-1 rounded">brand</code> - Brand name</li>
+              <li><code className="bg-muted px-1 rounded">promo_price</code> - Промоционална цена</li>
+              <li><code className="bg-muted px-1 rounded">unit</code> - Единица (напр. kg, 1L, 500g)</li>
+              <li><code className="bg-muted px-1 rounded">brand</code> - Марка</li>
               <li><code className="bg-muted px-1 rounded">is_promo</code> - true/false</li>
             </ul>
           </div>
@@ -160,14 +160,14 @@ export function CsvPriceImport() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span>Preview: {fileName}</span>
+                <span>Преглед: {fileName}</span>
                 <Badge variant={parseResult.errorCount > 0 ? 'destructive' : 'default'}>
-                  {parseResult.validCount} valid / {parseResult.errorCount} errors
+                  {parseResult.validCount} валидни / {parseResult.errorCount} грешки
                 </Badge>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleClear}>
-                  Clear
+                  Изчисти
                 </Button>
                 <Button 
                   size="sm" 
@@ -180,7 +180,7 @@ export function CsvPriceImport() {
                   ) : (
                     <CheckCircle className="h-4 w-4" />
                   )}
-                  Import {parseResult.validCount} Prices
+                  Импортирай {parseResult.validCount} цени
                 </Button>
               </div>
             </CardTitle>
@@ -191,12 +191,12 @@ export function CsvPriceImport() {
                 <TableHeader className="sticky top-0 bg-background">
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Store</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Promo</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Продукт</TableHead>
+                    <TableHead>Магазин</TableHead>
+                    <TableHead className="text-right">Цена</TableHead>
+                    <TableHead className="text-right">Промо</TableHead>
+                    <TableHead>Единица</TableHead>
+                    <TableHead>Статус</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -246,7 +246,7 @@ export function CsvPriceImport() {
                         ) : (
                           <div className="flex items-center gap-1.5">
                             <CheckCircle className="h-4 w-4 text-success" />
-                            <span className="text-xs text-success">Valid</span>
+                            <span className="text-xs text-success">Валидно</span>
                           </div>
                         )}
                       </TableCell>

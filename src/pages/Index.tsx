@@ -14,8 +14,8 @@ export default function Index() {
             <span className="text-gradient">ЦениБГ</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Compare grocery prices across Billa, Kaufland, and Lidl.
-            Track trends, find the best deals, save money.
+            Сравнявайте цените в Billa, Kaufland и Lidl.
+            Следете тенденциите, намирайте най-добрите оферти, спестявайте пари.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export default function Index() {
 
             {/* Quick Compare - Now using live data */}
             <div>
-              <h3 className="font-display text-lg font-semibold mb-4">Quick Compare</h3>
+              <h3 className="font-display text-lg font-semibold mb-4">Бързо сравнение</h3>
               <div className="grid sm:grid-cols-2 gap-4 stagger-children">
                 <PriceComparisonMiniLive productId="milk" />
                 <PriceComparisonMiniLive productId="bread" />

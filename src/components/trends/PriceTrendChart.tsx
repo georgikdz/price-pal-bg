@@ -37,7 +37,7 @@ export function PriceTrendChart() {
           <span className="text-3xl">{product.icon}</span>
           <div>
             <h3 className="font-display text-lg font-semibold">{product.nameBg}</h3>
-            <p className="text-sm text-muted-foreground">Price History</p>
+            <p className="text-sm text-muted-foreground">Ценова история</p>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function PriceTrendChart() {
           <Skeleton className="w-full h-full" />
         ) : chartData.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            No price data available for this product yet.
+            Все още няма ценови данни за този продукт.
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">

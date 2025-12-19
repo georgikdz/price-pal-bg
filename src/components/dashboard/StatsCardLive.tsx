@@ -25,27 +25,27 @@ export function StatsCardsLive() {
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatsCard
-        title="Products Tracked"
+        title="Проследени продукти"
         value={trackedProducts > 0 ? String(trackedProducts) : String(CANONICAL_PRODUCTS.length)}
-        subtitle={trackedProducts > 0 ? "With real prices" : "Essential items"}
+        subtitle={trackedProducts > 0 ? "С реални цени" : "Основни продукти"}
         icon={<Package className="h-6 w-6" />}
       />
       <StatsCard
-        title="Stores Compared"
+        title="Сравнени магазини"
         value={storesCompared > 0 ? String(storesCompared) : "3"}
         subtitle="Billa • Kaufland • Lidl"
         icon={<Store className="h-6 w-6" />}
       />
       <StatsCard
-        title="Avg. Savings"
+        title="Средни спестявания"
         value={stats.avgSavings > 0 ? `${stats.avgSavings}%` : "—"}
-        subtitle="From promotions"
+        subtitle="От промоции"
         icon={<Percent className="h-6 w-6" />}
       />
       <StatsCard
-        title="Price Drops"
+        title="Намалени цени"
         value={String(priceDrops)}
-        subtitle="This week"
+        subtitle="Тази седмица"
         icon={<TrendingDown className="h-6 w-6" />}
       />
     </div>

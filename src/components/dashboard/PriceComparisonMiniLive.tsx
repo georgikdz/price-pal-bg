@@ -24,7 +24,7 @@ export function PriceComparisonMiniLive({ productId }: PriceComparisonMiniLivePr
           <span className="text-2xl">{product.icon}</span>
           <div>
             <p className="font-medium text-sm">{product.nameBg}</p>
-            <p className="text-xs text-muted-foreground">per {product.unit}</p>
+            <p className="text-xs text-muted-foreground">за {product.unit}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -42,7 +42,7 @@ export function PriceComparisonMiniLive({ productId }: PriceComparisonMiniLivePr
         <span className="text-2xl">{product.icon}</span>
         <div>
           <p className="font-medium text-sm">{product.nameBg}</p>
-          <p className="text-xs text-muted-foreground">per {product.unit}</p>
+          <p className="text-xs text-muted-foreground">за {product.unit}</p>
         </div>
       </div>
       
