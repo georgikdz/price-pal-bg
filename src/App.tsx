@@ -7,7 +7,6 @@ import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import TrendsPage from "./pages/TrendsPage";
 import AdminPage from "./pages/AdminPage";
-import MappingReviewPage from "./pages/MappingReviewPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { RequireAdmin } from "./components/auth/RequireAdmin";
@@ -26,7 +25,6 @@ const App = () => (
           <Route path="/trends" element={<TrendsPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
-          <Route path="/mapping" element={<RequireAdmin><MappingReviewPage /></RequireAdmin>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

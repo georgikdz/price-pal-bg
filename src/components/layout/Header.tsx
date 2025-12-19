@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, Settings, TrendingDown, GitCompare, LogIn, LogOut } from 'lucide-react';
+import { BarChart3, ShoppingCart, Settings, TrendingDown, LogIn, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ const publicNavItems = [
 ];
 
 const adminNavItems = [
-  { path: '/mapping', label: 'Mapping', icon: GitCompare },
   { path: '/admin', label: 'Admin', icon: Settings },
 ];
 
