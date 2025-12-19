@@ -79,8 +79,8 @@ export function BrochureUpload() {
       ));
 
       toast({
-        title: 'Downloading brochure',
-        description: 'Preparing to re-process...',
+        title: 'Изтегляне на брошура',
+        description: 'Подготовка за повторна обработка...',
       });
 
       // Download the stored PDF and convert to images
@@ -89,13 +89,13 @@ export function BrochureUpload() {
         .createSignedUrl(upload.filePath, 60 * 5);
 
       if (signError || !signed?.signedUrl) {
-        throw new Error('Failed to access stored brochure');
+        throw new Error('Неуспешен достъп до съхранената брошура');
       }
 
       // Fetch the PDF and convert to File object
       const pdfResponse = await fetch(signed.signedUrl);
       if (!pdfResponse.ok) {
-        throw new Error('Failed to download brochure');
+        throw new Error('Неуспешно изтегляне на брошура');
       }
       const pdfBlob = await pdfResponse.blob();
       const pdfFile = new File([pdfBlob], upload.fileName, { type: 'application/pdf' });
@@ -105,12 +105,12 @@ export function BrochureUpload() {
       const images = await pdfToImages(pdfFile, Infinity, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
-        throw new Error('Failed to extract pages from PDF');
+        throw new Error('Неуспешно извличане на страници от PDF');
       }
 
       toast({
-        title: 'Analyzing brochure',
-        description: `Extracting products from ${images.length} page(s)...`,
+        title: 'Анализиране на брошура',
+        description: `Извличане на продукти от ${images.length} страница(и)...`,
       });
 
       // Trigger PDF parsing with images
@@ -128,15 +128,15 @@ export function BrochureUpload() {
           u.id === upload.id ? { ...u, status: 'failed' as const } : u
         ));
         toast({
-          title: 'Processing failed',
-          description: 'Failed to extract products from the brochure',
+          title: 'Неуспешна обработка',
+          description: 'Неуспешно извличане на продукти от брошурата',
           variant: 'destructive',
         });
       } else {
         setTimeout(fetchUploads, 2000);
         toast({
-          title: 'Processing complete',
-          description: 'Products have been extracted and matched',
+          title: 'Обработката завърши',
+          description: 'Продуктите бяха извлечени и съпоставени',
         });
       }
     } catch (error) {
@@ -145,8 +145,8 @@ export function BrochureUpload() {
         u.id === upload.id ? { ...u, status: 'failed' as const } : u
       ));
       toast({
-        title: 'Retry failed',
-        description: error instanceof Error ? error.message : 'Failed to retry processing',
+        title: 'Неуспешен повторен опит',
+        description: error instanceof Error ? error.message : 'Неуспешна повторна обработка',
         variant: 'destructive',
       });
     } finally {
@@ -161,8 +161,8 @@ export function BrochureUpload() {
 
     if (file.type !== 'application/pdf') {
       toast({
-        title: 'Invalid file type',
-        description: 'Please upload a PDF file',
+        title: 'Невалиден тип файл',
+        description: 'Моля, качете PDF файл',
         variant: 'destructive',
       });
       return;
@@ -176,7 +176,7 @@ export function BrochureUpload() {
       const images = await pdfToImages(file, Infinity, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
-        throw new Error('Failed to extract pages from PDF');
+        throw new Error('Неуспешно извличане на страници от PDF');
       }
 
       const totalSize = estimateImagesSize(images);
@@ -220,8 +220,8 @@ export function BrochureUpload() {
       setUploads(prev => [newUpload, ...prev]);
 
       toast({
-        title: 'Analyzing brochure',
-        description: `Extracting products from ${images.length} page(s)...`,
+        title: 'Анализиране на брошура',
+        description: `Извличане на продукти от ${images.length} страница(и)...`,
       });
 
       // Trigger PDF parsing backend function with images
@@ -242,24 +242,24 @@ export function BrochureUpload() {
             : u
         ));
         toast({
-          title: 'Processing failed',
-          description: 'Failed to extract products from the brochure',
+          title: 'Неуспешна обработка',
+          description: 'Неуспешно извличане на продукти от брошурата',
           variant: 'destructive',
         });
       } else {
         // Refresh uploads to get the updated status
         setTimeout(fetchUploads, 2000);
         toast({
-          title: 'Processing complete',
-          description: 'Products have been extracted and matched',
+          title: 'Обработката завърши',
+          description: 'Продуктите бяха извлечени и съпоставени',
         });
       }
 
     } catch (error) {
       console.error('Upload error:', error);
       toast({
-        title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload file',
+        title: 'Неуспешно качване',
+        description: error instanceof Error ? error.message : 'Неуспешно качване на файл',
         variant: 'destructive',
       });
     } finally {
@@ -281,8 +281,8 @@ export function BrochureUpload() {
 
       if (!prices || prices.length === 0) {
         toast({
-          title: 'No prices found',
-          description: 'No prices were extracted from this brochure.',
+          title: 'Няма намерени цени',
+          description: 'Няма извлечени цени от тази брошура.',
           variant: 'destructive',
         });
         return;
@@ -293,13 +293,13 @@ export function BrochureUpload() {
       downloadCsv(csv, filename);
 
       toast({
-        title: 'Export successful',
-        description: `Exported ${prices.length} prices to ${filename}`,
+        title: 'Успешен експорт',
+        description: `Експортирани ${prices.length} цени в ${filename}`,
       });
     } catch (error) {
       toast({
-        title: 'Export failed',
-        description: error instanceof Error ? error.message : 'Failed to export prices',
+        title: 'Неуспешен експорт',
+        description: error instanceof Error ? error.message : 'Неуспешен експорт на цени',
         variant: 'destructive',
       });
     }
@@ -320,7 +320,7 @@ export function BrochureUpload() {
     <div className="space-y-6">
       {/* Upload Section */}
       <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
-        <h3 className="font-display text-lg font-semibold mb-4">Upload Brochure</h3>
+        <h3 className="font-display text-lg font-semibold mb-4">Качване на брошура</h3>
         
         {/* Store Selection */}
         <div className="flex gap-2 mb-6">
@@ -349,7 +349,7 @@ export function BrochureUpload() {
               if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
             }}
             className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer group"
-            aria-label="Upload brochure PDF"
+            aria-label="Качване на PDF брошура"
           >
             {isUploading ? (
               <Loader2 className="h-10 w-10 mx-auto mb-4 text-primary animate-spin" />
@@ -359,9 +359,9 @@ export function BrochureUpload() {
             <p className="font-medium mb-1">
               {isUploading 
                 ? pdfProgress && pdfProgress.totalPages > 0
-                  ? `Converting page ${pdfProgress.currentPage} of ${pdfProgress.totalPages}...`
-                  : 'Processing...'
-                : 'Drop PDF here or click to upload'}
+                  ? `Конвертиране на страница ${pdfProgress.currentPage} от ${pdfProgress.totalPages}...`
+                  : 'Обработка...'
+                : 'Пуснете PDF тук или кликнете за качване'}
             </p>
             {isUploading && pdfProgress && pdfProgress.totalPages > 0 && (
               <div className="w-48 mx-auto mt-2">
@@ -369,7 +369,7 @@ export function BrochureUpload() {
               </div>
             )}
             <p className="text-sm text-muted-foreground mt-2">
-              Upload the weekly brochure for {STORE_INFO[selectedStore].name}
+              Качете седмичната брошура за {STORE_INFO[selectedStore].name}
             </p>
           </div>
 
@@ -379,14 +379,14 @@ export function BrochureUpload() {
               onClick={() => inputRef.current?.click()}
               disabled={isUploading}
               className="gap-2"
-              aria-label="Choose brochure PDF"
+              aria-label="Избор на PDF брошура"
             >
               {isUploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              Choose PDF
+              Избор на PDF
             </Button>
           </div>
 
@@ -404,11 +404,11 @@ export function BrochureUpload() {
 
       {/* Recent Uploads */}
       <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
-        <h3 className="font-display text-lg font-semibold mb-4">Recent Uploads</h3>
+        <h3 className="font-display text-lg font-semibold mb-4">Последни качвания</h3>
         
         {uploads.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
-            No brochures uploaded yet. Upload your first brochure above.
+            Все още няма качени брошури. Качете първата си брошура по-горе.
           </p>
         ) : (
           <div className="space-y-3">
@@ -431,14 +431,14 @@ export function BrochureUpload() {
                         {STORE_INFO[upload.store].name}
                       </Badge>
                       <span>•</span>
-                      <span>{upload.uploadedAt.toLocaleDateString()}</span>
+                      <span>{upload.uploadedAt.toLocaleDateString('bg-BG')}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {upload.productsFound !== undefined && upload.status === 'completed' && (
                     <span className="text-sm text-muted-foreground">
-                      {upload.productsFound} products
+                      {upload.productsFound} продукта
                     </span>
                   )}
                   {upload.status === 'completed' && (
@@ -465,7 +465,7 @@ export function BrochureUpload() {
                       ) : (
                         <RotateCcw className="h-3 w-3" />
                       )}
-                      Retry
+                      Повтори
                     </Button>
                   )}
                   {getStatusIcon(upload.status)}

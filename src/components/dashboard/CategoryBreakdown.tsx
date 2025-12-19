@@ -18,7 +18,7 @@ export function CategoryBreakdown() {
   
   return (
     <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
-      <h3 className="font-display text-lg font-semibold mb-4">Products by Category</h3>
+      <h3 className="font-display text-lg font-semibold mb-4">Продукти по категории</h3>
       
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {categories.map(category => {
@@ -33,7 +33,7 @@ export function CategoryBreakdown() {
                 {CATEGORY_ICONS[category]}
               </span>
               <p className="text-sm font-medium text-center">{CATEGORY_LABELS[category]}</p>
-              <p className="text-xs text-muted-foreground">{count} items</p>
+              <p className="text-xs text-muted-foreground">{count} артикула</p>
             </div>
           );
         })}

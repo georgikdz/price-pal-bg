@@ -11,9 +11,9 @@ export default function AdminPage() {
     <Layout>
       <div className="space-y-6">
         <header>
-          <h1 className="font-display text-3xl font-bold mb-2">Admin Panel</h1>
+          <h1 className="font-display text-3xl font-bold mb-2">Админ панел</h1>
           <p className="text-muted-foreground">
-            Upload brochures, import CSV, and manage extracted prices.
+            Качвайте брошури, импортирайте CSV и управлявайте извлечените цени.
           </p>
         </header>
 
@@ -21,15 +21,15 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="upload" className="gap-2">
               <Upload className="h-4 w-4" />
-              Upload PDF
+              Качване на PDF
             </TabsTrigger>
             <TabsTrigger value="import" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
-              Import CSV
+              Импорт на CSV
             </TabsTrigger>
             <TabsTrigger value="prices" className="gap-2">
               <Pencil className="h-4 w-4" />
-              Edit Prices
+              Редакция на цени
             </TabsTrigger>
           </TabsList>
 

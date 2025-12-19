@@ -22,15 +22,15 @@ export function InflationOverview() {
   return (
     <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
       <div className="mb-6">
-        <h3 className="font-display text-lg font-semibold">Price Changes by Category</h3>
+        <h3 className="font-display text-lg font-semibold">Ценови промени по категории</h3>
         <p className="text-sm text-muted-foreground">
-          {hasData ? 'Based on historical price data' : 'Upload more brochures to see trends'}
+          {hasData ? 'Базирано на исторически данни' : 'Качете повече брошури, за да видите тенденции'}
         </p>
       </div>
 
       {!hasData ? (
         <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-          <p>Not enough historical data to show price changes yet.</p>
+          <p>Недостатъчно исторически данни за показване на ценови промени.</p>
         </div>
       ) : (
         <div className="h-[300px] w-full">
@@ -61,7 +61,7 @@ export function InflationOverview() {
                   borderRadius: '0.75rem',
                   boxShadow: 'var(--shadow-lg)',
                 }}
-                formatter={(value: number) => [`${value > 0 ? '+' : ''}${value}%`, 'Change']}
+                formatter={(value: number) => [`${value > 0 ? '+' : ''}${value}%`, 'Промяна']}
               />
               <Bar 
                 dataKey="change" 

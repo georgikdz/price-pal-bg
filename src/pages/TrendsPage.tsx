@@ -7,9 +7,9 @@ export default function TrendsPage() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-2">Price Trends</h1>
+          <h1 className="font-display text-3xl font-bold mb-2">Ценови тенденции</h1>
           <p className="text-muted-foreground">
-            Track how prices change over time across stores.
+            Проследете как се променят цените с времето в различните магазини.
           </p>
         </div>
         

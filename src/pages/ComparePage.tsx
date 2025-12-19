@@ -6,9 +6,9 @@ export default function ComparePage() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-2">Price Comparison</h1>
+          <h1 className="font-display text-3xl font-bold mb-2">Сравнение на цени</h1>
           <p className="text-muted-foreground">
-            Compare prices across all stores. Click headers to sort.
+            Сравнете цените във всички магазини. Кликнете върху заглавията за сортиране.
           </p>
         </div>
         

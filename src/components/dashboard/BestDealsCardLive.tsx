@@ -11,8 +11,8 @@ export function BestDealsCardLive() {
     return (
       <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-lg font-semibold">🔥 Best Deals This Week</h3>
-          <Badge variant="promo">Promo</Badge>
+          <h3 className="font-display text-lg font-semibold">🔥 Най-добри оферти</h3>
+          <Badge variant="promo">Промо</Badge>
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
@@ -27,11 +27,11 @@ export function BestDealsCardLive() {
     return (
       <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-lg font-semibold">🔥 Best Deals This Week</h3>
-          <Badge variant="promo">Promo</Badge>
+          <h3 className="font-display text-lg font-semibold">🔥 Най-добри оферти</h3>
+          <Badge variant="promo">Промо</Badge>
         </div>
         <p className="text-muted-foreground text-sm">
-          No promotional deals found. Upload store brochures to see the latest deals.
+          Няма намерени промоции. Качете брошури, за да видите актуалните оферти.
         </p>
       </div>
     );
@@ -40,8 +40,8 @@ export function BestDealsCardLive() {
   return (
     <div className="rounded-2xl bg-card p-6 shadow-md border border-border/50">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display text-lg font-semibold">🔥 Best Deals This Week</h3>
-        <Badge variant="promo">Promo</Badge>
+        <h3 className="font-display text-lg font-semibold">🔥 Най-добри оферти</h3>
+        <Badge variant="promo">Промо</Badge>
       </div>
       
       <div className="space-y-3 stagger-children">

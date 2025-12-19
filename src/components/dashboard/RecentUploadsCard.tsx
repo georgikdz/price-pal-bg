@@ -51,10 +51,10 @@ function StatusIcon({ status }: { status: UploadStatus }) {
 }
 
 function StatusBadge({ status }: { status: UploadStatus }) {
-  if (status === "done") return <Badge variant="success">Done</Badge>;
-  if (status === "failed") return <Badge variant="destructive">Failed</Badge>;
-  if (status === "processing") return <Badge variant="warning">Processing</Badge>;
-  return <Badge variant="secondary">Queued</Badge>;
+  if (status === "done") return <Badge variant="success">Готово</Badge>;
+  if (status === "failed") return <Badge variant="destructive">Грешка</Badge>;
+  if (status === "processing") return <Badge variant="warning">Обработка</Badge>;
+  return <Badge variant="secondary">В опашка</Badge>;
 }
 
 export function RecentUploadsCard() {
@@ -87,24 +87,24 @@ export function RecentUploadsCard() {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle className="text-lg">Recent uploads</CardTitle>
-          <CardDescription>Brochure processing status (queued/processing/done/failed)</CardDescription>
+          <CardTitle className="text-lg">Последни качвания</CardTitle>
+          <CardDescription>Статус на обработка на брошури</CardDescription>
         </div>
 
         {isAdmin && (
           <Button asChild size="sm" variant="secondary" className="shrink-0">
-            <Link to="/admin">Upload</Link>
+            <Link to="/admin">Качване</Link>
           </Button>
         )}
       </CardHeader>
 
       <CardContent>
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Loading uploads…</div>
+          <div className="text-sm text-muted-foreground">Зареждане…</div>
         ) : error ? (
-          <div className="text-sm text-destructive">Couldn’t load recent uploads.</div>
+          <div className="text-sm text-destructive">Грешка при зареждане на качванията.</div>
         ) : rows.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No uploads yet.</div>
+          <div className="text-sm text-muted-foreground">Все още няма качвания.</div>
         ) : (
           <div className="space-y-3">
             {rows.map((r) => (
@@ -134,18 +134,18 @@ export function RecentUploadsCard() {
                         {STORE_INFO[r.store].name}
                       </Badge>
                       <span aria-hidden="true">•</span>
-                      <time dateTime={r.created_at}>{r.createdAt.toLocaleString()}</time>
+                      <time dateTime={r.created_at}>{r.createdAt.toLocaleString('bg-BG')}</time>
                       {typeof r.products_found === "number" && r.products_found > 0 && (
                         <>
                           <span aria-hidden="true">•</span>
-                          <span>{r.products_found} products</span>
+                          <span>{r.products_found} продукта</span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="shrink-0" aria-label={`Status: ${r.uiStatus}`}>
+                <div className="shrink-0" aria-label={`Статус: ${r.uiStatus}`}>
                   <StatusIcon status={r.uiStatus} />
                 </div>
               </article>
@@ -155,7 +155,7 @@ export function RecentUploadsCard() {
 
         {!user && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Tip: log in as an admin to upload brochures.
+            Съвет: влезте като админ, за да качвате брошури.
           </p>
         )}
       </CardContent>

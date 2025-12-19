@@ -35,7 +35,7 @@ function PriceHistoryChart({ productId }: { productId: string }) {
   if (!history || history.length === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-        No price history available for this product
+        Няма налична ценова история за този продукт
       </div>
     );
   }
@@ -62,7 +62,7 @@ function PriceHistoryChart({ productId }: { productId: string }) {
       <div className="flex items-center gap-2 text-sm">
         <span className="text-lg">{product?.icon}</span>
         <span className="font-medium">{product?.nameBg}</span>
-        <span className="text-muted-foreground">- Price History</span>
+        <span className="text-muted-foreground">- Ценова история</span>
       </div>
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
@@ -138,12 +138,12 @@ export function PriceEditor() {
     const promoValue = editForm.promo_price ? parseFloat(editForm.promo_price) : null;
 
     if (isNaN(priceValue) || priceValue <= 0) {
-      toast({ title: 'Invalid price', description: 'Please enter a valid price.', variant: 'destructive' });
+      toast({ title: 'Невалидна цена', description: 'Моля, въведете валидна цена.', variant: 'destructive' });
       return;
     }
 
     if (promoValue !== null && (isNaN(promoValue) || promoValue <= 0)) {
-      toast({ title: 'Invalid promo price', description: 'Please enter a valid promo price.', variant: 'destructive' });
+      toast({ title: 'Невалидна промо цена', description: 'Моля, въведете валидна промо цена.', variant: 'destructive' });
       return;
     }
 
@@ -154,20 +154,20 @@ export function PriceEditor() {
         promo_price: promoValue,
         unit: editForm.unit || null,
       });
-      toast({ title: 'Price updated', description: 'The price has been updated successfully.' });
+      toast({ title: 'Цената е обновена', description: 'Цената беше успешно обновена.' });
       setEditingPrice(null);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to update price.', variant: 'destructive' });
+      toast({ title: 'Грешка', description: 'Неуспешно обновяване на цената.', variant: 'destructive' });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deletePrice.mutateAsync(id);
-      toast({ title: 'Price deleted', description: 'The price entry has been removed.' });
+      toast({ title: 'Цената е изтрита', description: 'Записът за цената беше премахнат.' });
       setDeleteConfirm(null);
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete price.', variant: 'destructive' });
+      toast({ title: 'Грешка', description: 'Неуспешно изтриване на цената.', variant: 'destructive' });
     }
   };
 
@@ -190,7 +190,7 @@ export function PriceEditor() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Price Editor</CardTitle>
+          <CardTitle>Редактор на цени</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -207,8 +207,8 @@ export function PriceEditor() {
     const pricesToExport = filteredPrices.length > 0 ? filteredPrices : (prices || []);
     if (pricesToExport.length === 0) {
       toast({
-        title: 'No prices to export',
-        description: 'There are no prices matching your filters.',
+        title: 'Няма цени за експорт',
+        description: 'Няма цени, съответстващи на вашите филтри.',
         variant: 'destructive',
       });
       return;
@@ -217,12 +217,12 @@ export function PriceEditor() {
     const csv = pricesToCsv(pricesToExport);
     const storePart = filterStore !== 'all' ? `_${filterStore}` : '';
     const productPart = filterProduct !== 'all' ? `_${filterProduct}` : '';
-    const filename = `prices${storePart}${productPart}_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `цени${storePart}${productPart}_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCsv(csv, filename);
 
     toast({
-      title: 'Export successful',
-      description: `Exported ${pricesToExport.length} prices to ${filename}`,
+      title: 'Успешен експорт',
+      description: `Експортирани ${pricesToExport.length} цени в ${filename}`,
     });
   };
 
@@ -233,11 +233,11 @@ export function PriceEditor() {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Pencil className="h-5 w-5" />
-              Price Editor
+              Редактор на цени
             </div>
             <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-2">
               <Download className="h-4 w-4" />
-              Export CSV
+              Експорт CSV
             </Button>
           </CardTitle>
         </CardHeader>
@@ -245,13 +245,13 @@ export function PriceEditor() {
           {/* Filters */}
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
-              <Label>Store:</Label>
+              <Label>Магазин:</Label>
               <Select value={filterStore} onValueChange={setFilterStore}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stores</SelectItem>
+                  <SelectItem value="all">Всички магазини</SelectItem>
                   {Object.entries(STORE_INFO).map(([key, info]) => (
                     <SelectItem key={key} value={key}>{info.name}</SelectItem>
                   ))}
@@ -259,13 +259,13 @@ export function PriceEditor() {
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <Label>Product:</Label>
+              <Label>Продукт:</Label>
               <Select value={filterProduct} onValueChange={setFilterProduct}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Products</SelectItem>
+                  <SelectItem value="all">Всички продукти</SelectItem>
                   {CANONICAL_PRODUCTS.map(p => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.icon} {p.nameBg}
@@ -283,7 +283,7 @@ export function PriceEditor() {
                 <Button variant="outline" className="w-full justify-between">
                   <span className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Price History Chart
+                    Графика на ценова история
                   </span>
                   {showHistoryChart ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
@@ -300,7 +300,7 @@ export function PriceEditor() {
 
           {/* Price count */}
           <p className="text-sm text-muted-foreground">
-            Showing {filteredPrices.length} price entries
+            Показване на {filteredPrices.length} ценови записа
           </p>
 
           {/* Prices Table */}
@@ -308,14 +308,14 @@ export function PriceEditor() {
             <Table>
               <TableHeader className="sticky top-0 bg-background">
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Store</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Promo</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Продукт</TableHead>
+                  <TableHead>Магазин</TableHead>
+                  <TableHead>Марка</TableHead>
+                  <TableHead className="text-right">Цена</TableHead>
+                  <TableHead className="text-right">Промо</TableHead>
+                  <TableHead>Единица</TableHead>
+                  <TableHead>Дата</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -354,7 +354,7 @@ export function PriceEditor() {
                         {price.unit || '-'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(price.extracted_at).toLocaleDateString()}
+                        {new Date(price.extracted_at).toLocaleDateString('bg-BG')}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -387,7 +387,7 @@ export function PriceEditor() {
       <Dialog open={!!editingPrice} onOpenChange={() => setEditingPrice(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Price</DialogTitle>
+            <DialogTitle>Редактиране на цена</DialogTitle>
           </DialogHeader>
           {editingPrice && (
             <div className="space-y-4">
@@ -399,7 +399,7 @@ export function PriceEditor() {
               
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Regular Price (лв)</Label>
+                  <Label htmlFor="price">Редовна цена (лв)</Label>
                   <Input
                     id="price"
                     type="number"
@@ -410,7 +410,7 @@ export function PriceEditor() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="promo_price">Promo Price (лв) - leave empty if not on sale</Label>
+                  <Label htmlFor="promo_price">Промо цена (лв) - оставете празно, ако не е в промоция</Label>
                   <Input
                     id="promo_price"
                     type="number"
@@ -418,16 +418,16 @@ export function PriceEditor() {
                     min="0"
                     value={editForm.promo_price}
                     onChange={e => setEditForm(f => ({ ...f, promo_price: e.target.value }))}
-                    placeholder="Optional"
+                    placeholder="По избор"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="unit">Unit</Label>
+                  <Label htmlFor="unit">Единица</Label>
                   <Input
                     id="unit"
                     value={editForm.unit}
                     onChange={e => setEditForm(f => ({ ...f, unit: e.target.value }))}
-                    placeholder="e.g. 1 kg, 500g, 1 L"
+                    placeholder="напр. 1 kg, 500g, 1 L"
                   />
                 </div>
               </div>
@@ -436,11 +436,11 @@ export function PriceEditor() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingPrice(null)}>
               <X className="h-4 w-4 mr-2" />
-              Cancel
+              Отказ
             </Button>
             <Button onClick={handleSave} disabled={updatePrice.isPending}>
               <Check className="h-4 w-4 mr-2" />
-              Save Changes
+              Запази
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -450,21 +450,21 @@ export function PriceEditor() {
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Price Entry</DialogTitle>
+            <DialogTitle>Потвърждение за изтриване</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            Are you sure you want to delete this price entry? This action cannot be undone.
+            Сигурни ли сте, че искате да изтриете този ценови запис? Това действие не може да бъде отменено.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-              Cancel
+              Отказ
             </Button>
             <Button 
               variant="destructive" 
               onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
               disabled={deletePrice.isPending}
             >
-              Delete
+              Изтрий
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -85,7 +85,7 @@ export function ComparisonTable() {
             onClick={() => setSelectedCategory(category)}
             className="shrink-0"
           >
-            {category === 'all' ? 'All Products' : CATEGORY_LABELS[category]}
+            {category === 'all' ? 'Всички продукти' : CATEGORY_LABELS[category]}
           </Button>
         ))}
       </div>
@@ -101,7 +101,7 @@ export function ComparisonTable() {
                   onClick={() => handleSort('name')}
                 >
                   <div className="flex items-center gap-2">
-                    Product
+                    Продукт
                     <SortIcon field="name" />
                   </div>
                 </th>
@@ -117,7 +117,7 @@ export function ComparisonTable() {
                     </div>
                   </th>
                 ))}
-                <th className="text-center p-4 font-medium min-w-[100px]">Best Deal</th>
+                <th className="text-center p-4 font-medium min-w-[100px]">Най-добра оферта</th>
               </tr>
             </thead>
             <tbody className="stagger-children">
@@ -148,7 +148,7 @@ export function ComparisonTable() {
                         <span className="text-2xl">{product.icon}</span>
                         <div>
                           <p className="font-medium">{product.nameBg}</p>
-                          <p className="text-xs text-muted-foreground">per {product.unit}</p>
+                          <p className="text-xs text-muted-foreground">за {product.unit}</p>
                         </div>
                       </div>
                     </td>
@@ -187,7 +187,7 @@ export function ComparisonTable() {
                               <span className="text-xs text-muted-foreground">лв.</span>
                               {priceData.is_promo && (
                                 <Badge variant="promo" className="mt-1 text-xs">
-                                  Promo
+                                  Промо
                                 </Badge>
                               )}
                             </div>
