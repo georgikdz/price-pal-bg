@@ -214,6 +214,23 @@ export function BrochureUpload() {
             </p>
           </div>
 
+          <div className="mt-4 flex justify-center">
+            <Button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isUploading}
+              className="gap-2"
+              aria-label="Choose brochure PDF"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              Choose PDF
+            </Button>
+          </div>
+
           {/* Note: do NOT use `display: none` for file inputs; some browsers won't open the picker. */}
           <input
             ref={inputRef}
