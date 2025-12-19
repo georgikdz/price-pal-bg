@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Max PDF size in bytes (5MB to stay within worker memory limits)
-const MAX_PDF_SIZE = 5 * 1024 * 1024;
 
 const CANONICAL_PRODUCTS = [
   { id: 'kashkaval', name: 'Yellow Cheese (Kashkaval)', nameBg: 'Кашкавал', category: 'dairy' },
@@ -53,18 +49,25 @@ serve(async (req) => {
   try {
     const body = await req.json();
     brochureId = body?.brochureId;
-    const { filePath, fileUrl, store } = body ?? {};
+    const { store, images } = body ?? {};
 
-    if (!brochureId || !store || (!filePath && !fileUrl)) {
+    // Validate required fields
+    if (!brochureId || !store) {
       return new Response(
-        JSON.stringify({
-          error: 'Missing required fields: brochureId, store, and one of filePath or fileUrl',
-        }),
+        JSON.stringify({ error: 'Missing required fields: brochureId, store' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    console.log(`Processing brochure ${brochureId} for store ${store}`);
+    // Validate images array
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid images array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    console.log(`Processing brochure ${brochureId} for store ${store} with ${images.length} page(s)`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -75,70 +78,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Download PDF and convert to base64 (required by AI gateway for PDF analysis)
-    // We use the signed URL passed from the client, or create one from filePath
-    let pdfDownloadUrl: string;
-
-    if (fileUrl) {
-      // Validate that it's a Supabase storage URL
-      try {
-        const u = new URL(fileUrl);
-        const supabaseOrigin = new URL(supabaseUrl).origin;
-        if (u.origin !== supabaseOrigin || !u.pathname.includes('/storage/v1/')) {
-          throw new Error('Invalid file URL');
-        }
-        pdfDownloadUrl = fileUrl;
-      } catch {
-        throw new Error('Invalid file URL');
-      }
-    } else {
-      // Create a signed URL for the file
-      const { data: signed, error: signError } = await supabase.storage
-        .from('brochures')
-        .createSignedUrl(filePath, 60 * 5);
-
-      if (signError || !signed?.signedUrl) {
-        console.error('Failed to create signed URL:', signError);
-        throw new Error('Failed to access PDF');
-      }
-      pdfDownloadUrl = signed.signedUrl;
-    }
-
-    console.log('Downloading PDF for analysis...');
-
-    // Fetch the PDF with size limit check
-    const pdfResponse = await fetch(pdfDownloadUrl);
-    if (!pdfResponse.ok) {
-      throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
-    }
-
-    // Check Content-Length if available
-    const contentLength = pdfResponse.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > MAX_PDF_SIZE) {
-      throw new Error(`PDF too large (${Math.round(parseInt(contentLength, 10) / 1024 / 1024)}MB). Maximum size is 5MB.`);
-    }
-
-    // Read PDF bytes with size limit
-    const pdfBytes = await pdfResponse.arrayBuffer();
-    if (pdfBytes.byteLength > MAX_PDF_SIZE) {
-      throw new Error(`PDF too large (${Math.round(pdfBytes.byteLength / 1024 / 1024)}MB). Maximum size is 5MB.`);
-    }
-
-    console.log(`PDF downloaded: ${Math.round(pdfBytes.byteLength / 1024)}KB`);
-
-    // Convert to base64
-    const base64Pdf = base64Encode(pdfBytes);
-
-    console.log('PDF encoded, calling AI API...');
-
-    // Build AI request
+    // Build AI request with images
     const productListStr = CANONICAL_PRODUCTS.map(p => 
       `- ${p.id}: ${p.name} / ${p.nameBg}`
     ).join('\n');
 
     const systemPrompt = `You are an expert at extracting product and price information from Bulgarian grocery store brochures.
 
-Your task is to analyze the brochure PDF and extract all food products with their prices.
+Your task is to analyze the brochure page images and extract all food products with their prices.
 
 CANONICAL PRODUCTS (use these IDs when matching):
 ${productListStr}
@@ -154,6 +101,26 @@ For each product found, extract:
 Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
 [{"raw_name":"Кашкавал Витоша","raw_price":15.99,"raw_unit":"1 kg","promo_price":12.99,"mapped_product_id":"kashkaval","confidence_score":0.95}]`;
 
+    // Build content array with all images
+    const userContent: any[] = [
+      {
+        type: 'text',
+        text: `Analyze these ${images.length} page(s) from a ${store} grocery brochure and extract all food products with prices. Return ONLY valid JSON array combining products from all pages.`,
+      },
+    ];
+
+    // Add each page image
+    for (const img of images) {
+      if (img.dataUrl && typeof img.dataUrl === 'string' && img.dataUrl.startsWith('data:image/')) {
+        userContent.push({
+          type: 'image_url',
+          image_url: { url: img.dataUrl },
+        });
+      }
+    }
+
+    console.log('Calling AI API...');
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -164,21 +131,7 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Analyze this ${store} grocery brochure PDF and extract all food products with prices. Return ONLY valid JSON array.`,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64Pdf}`,
-                },
-              },
-            ],
-          },
+          { role: 'user', content: userContent },
         ],
       }),
     });
@@ -312,18 +265,12 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     let statusCode = 500;
 
     if (error instanceof Error) {
-      if (error.message.includes('too large')) {
-        userMessage = error.message;
-        statusCode = 400;
-      } else if (error.message.includes('Rate limit')) {
+      if (error.message.includes('Rate limit')) {
         userMessage = 'Service temporarily unavailable. Please try again later.';
         statusCode = 503;
       } else if (error.message.includes('credits')) {
         userMessage = 'Processing service unavailable';
         statusCode = 503;
-      } else if (error.message.includes('PDF') || error.message.includes('fetch') || error.message.includes('download')) {
-        userMessage = 'Failed to process PDF file';
-        statusCode = 400;
       }
     }
 

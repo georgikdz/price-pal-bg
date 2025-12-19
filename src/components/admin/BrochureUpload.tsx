@@ -7,6 +7,7 @@ import { STORE_INFO } from '@/data/products';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { pdfToImages, estimateImagesSize } from '@/lib/pdfToImages';
 
 interface UploadedFile {
   id: string;
@@ -74,25 +75,49 @@ export function BrochureUpload() {
       ));
 
       toast({
-        title: 'Retrying processing',
-        description: `Re-processing ${upload.fileName}...`,
+        title: 'Downloading brochure',
+        description: 'Preparing to re-process...',
       });
 
-      // Create a signed URL for the existing file
+      // Download the stored PDF and convert to images
       const { data: signed, error: signError } = await supabase.storage
         .from('brochures')
-        .createSignedUrl(upload.filePath, 60 * 15);
+        .createSignedUrl(upload.filePath, 60 * 5);
 
       if (signError || !signed?.signedUrl) {
         throw new Error('Failed to access stored brochure');
       }
 
-      // Trigger PDF parsing
+      // Fetch the PDF and convert to File object
+      const pdfResponse = await fetch(signed.signedUrl);
+      if (!pdfResponse.ok) {
+        throw new Error('Failed to download brochure');
+      }
+      const pdfBlob = await pdfResponse.blob();
+      const pdfFile = new File([pdfBlob], upload.fileName, { type: 'application/pdf' });
+
+      toast({
+        title: 'Processing PDF',
+        description: 'Converting pages to images...',
+      });
+
+      const images = await pdfToImages(pdfFile, 10, 1.5, 0.7);
+      
+      if (images.length === 0) {
+        throw new Error('Failed to extract pages from PDF');
+      }
+
+      toast({
+        title: 'Analyzing brochure',
+        description: `Extracting products from ${images.length} page(s)...`,
+      });
+
+      // Trigger PDF parsing with images
       const { error: fnError } = await supabase.functions.invoke('parse-brochure', {
         body: {
           brochureId: upload.id,
-          fileUrl: signed.signedUrl,
           store: upload.store,
+          images: images.map(img => ({ dataUrl: img.dataUrl })),
         },
       });
 
@@ -128,8 +153,8 @@ export function BrochureUpload() {
     }
   };
 
-  // Max file size in bytes (5MB to match edge function limit)
-  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  // Max pages to process (to keep API request size reasonable)
+  const MAX_PAGES = 10;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,20 +169,25 @@ export function BrochureUpload() {
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-      toast({
-        title: 'File too large',
-        description: `This PDF is ${sizeMB}MB. Maximum size is 5MB. Try compressing the PDF or splitting it into smaller files.`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsUploading(true);
 
     try {
-      // Upload file to storage
+      // Convert PDF pages to images client-side (bypasses PDF size limit)
+      toast({
+        title: 'Processing PDF',
+        description: 'Converting pages to images...',
+      });
+
+      const images = await pdfToImages(file, MAX_PAGES, 1.5, 0.7);
+      
+      if (images.length === 0) {
+        throw new Error('Failed to extract pages from PDF');
+      }
+
+      const totalSize = estimateImagesSize(images);
+      console.log(`Converted ${images.length} pages, total size: ${Math.round(totalSize / 1024)}KB`);
+
+      // Upload original file to storage (for reference/retry)
       const fileName = `${selectedStore}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('brochures')
@@ -166,6 +196,7 @@ export function BrochureUpload() {
       if (uploadError) {
         throw uploadError;
       }
+
       // Create database record
       const { data: brochureRecord, error: dbError } = await supabase
         .from('brochure_uploads')
@@ -194,25 +225,16 @@ export function BrochureUpload() {
       setUploads(prev => [newUpload, ...prev]);
 
       toast({
-        title: 'Upload started',
-        description: `Processing ${file.name} for ${STORE_INFO[selectedStore].name}`,
+        title: 'Analyzing brochure',
+        description: `Extracting products from ${images.length} page(s)...`,
       });
 
-      // Create a short-lived URL for the uploaded PDF (keeps the backend function lightweight)
-      const { data: signed, error: signError } = await supabase.storage
-        .from('brochures')
-        .createSignedUrl(fileName, 60 * 15);
-
-      if (signError || !signed?.signedUrl) {
-        throw new Error('Failed to create brochure link for processing');
-      }
-
-      // Trigger PDF parsing backend function
+      // Trigger PDF parsing backend function with images
       const { error: fnError } = await supabase.functions.invoke('parse-brochure', {
         body: {
           brochureId: brochureRecord.id,
-          fileUrl: signed.signedUrl,
           store: selectedStore,
+          images: images.map(img => ({ dataUrl: img.dataUrl })),
         },
       });
 
