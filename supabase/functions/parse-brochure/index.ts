@@ -45,17 +45,16 @@ serve(async (req) => {
   }
 
   try {
-    const { brochureId, fileUrl, store } = await req.json();
+    const { brochureId, filePath, fileUrl, store } = await req.json();
     
-    if (!brochureId || !fileUrl || !store) {
+    if (!brochureId || !store || (!filePath && !fileUrl)) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: brochureId, fileUrl, store' }),
+        JSON.stringify({ error: 'Missing required fields: brochureId, store, and one of filePath or fileUrl' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`Processing brochure ${brochureId} for store ${store}`);
-    console.log(`File URL: ${fileUrl}`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -66,13 +65,28 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch the PDF file
-    const pdfResponse = await fetch(fileUrl);
-    if (!pdfResponse.ok) {
-      throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`);
+    // Fetch the PDF file (prefer downloading from storage when filePath is provided)
+    let pdfBuffer: ArrayBuffer;
+    if (filePath) {
+      const { data: pdfBlob, error: downloadError } = await supabase.storage
+        .from('brochures')
+        .download(filePath);
+
+      if (downloadError || !pdfBlob) {
+        console.error('Failed to download brochure from storage:', downloadError);
+        throw new Error('Failed to download PDF');
+      }
+
+      pdfBuffer = await pdfBlob.arrayBuffer();
+    } else {
+      // Backward compatibility: allow passing a URL
+      const pdfResponse = await fetch(fileUrl);
+      if (!pdfResponse.ok) {
+        throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`);
+      }
+      pdfBuffer = await pdfResponse.arrayBuffer();
     }
     
-    const pdfBuffer = await pdfResponse.arrayBuffer();
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
     console.log(`PDF fetched successfully, size: ${pdfBuffer.byteLength} bytes`);
