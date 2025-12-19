@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ export function BrochureUpload() {
   const [selectedStore, setSelectedStore] = useState<Store>('billa');
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
   const stores: Store[] = ['billa', 'kaufland', 'lidl'];
@@ -195,8 +196,17 @@ export function BrochureUpload() {
         </div>
 
         {/* Upload Area */}
-        <label className={cn("block", isUploading && "pointer-events-none opacity-50")}>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer group">
+        <div className={cn("block", isUploading && "pointer-events-none opacity-50")}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => inputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+            }}
+            className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer group"
+            aria-label="Upload brochure PDF"
+          >
             {isUploading ? (
               <Loader2 className="h-10 w-10 mx-auto mb-4 text-primary animate-spin" />
             ) : (
@@ -209,14 +219,17 @@ export function BrochureUpload() {
               Upload the weekly brochure for {STORE_INFO[selectedStore].name}
             </p>
           </div>
+
+          {/* Note: do NOT use `display: none` for file inputs; some browsers won't open the picker. */}
           <input
+            ref={inputRef}
             type="file"
-            accept=".pdf"
+            accept="application/pdf,.pdf"
             onChange={handleFileUpload}
-            className="hidden"
+            className="sr-only"
             disabled={isUploading}
           />
-        </label>
+        </div>
       </div>
 
       {/* Recent Uploads */}
