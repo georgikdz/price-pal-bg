@@ -128,6 +128,9 @@ export function BrochureUpload() {
     }
   };
 
+  // Max file size in bytes (5MB to match edge function limit)
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -136,6 +139,16 @@ export function BrochureUpload() {
       toast({
         title: 'Invalid file type',
         description: 'Please upload a PDF file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      toast({
+        title: 'File too large',
+        description: `This PDF is ${sizeMB}MB. Maximum size is 5MB. Try compressing the PDF or splitting it into smaller files.`,
         variant: 'destructive',
       });
       return;
