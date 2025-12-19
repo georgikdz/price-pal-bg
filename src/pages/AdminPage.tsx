@@ -1,26 +1,48 @@
 import { Layout } from '@/components/layout/Layout';
 import { BrochureUpload } from '@/components/admin/BrochureUpload';
 import { RecentUploadsCard } from '@/components/dashboard/RecentUploadsCard';
+import { PriceEditor } from '@/components/admin/PriceEditor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, Pencil } from 'lucide-react';
 
 export default function AdminPage() {
   return (
     <Layout>
       <div className="space-y-6">
         <header>
-          <h1 className="font-display text-3xl font-bold mb-2">Upload Brochures</h1>
+          <h1 className="font-display text-3xl font-bold mb-2">Admin Panel</h1>
           <p className="text-muted-foreground">
-            Upload store brochures for extraction and pricing updates.
+            Upload brochures and manage extracted prices.
           </p>
         </header>
 
-        <section className="grid lg:grid-cols-3 gap-6">
-          <main className="lg:col-span-2">
-            <BrochureUpload />
-          </main>
-          <aside>
-            <RecentUploadsCard />
-          </aside>
-        </section>
+        <Tabs defaultValue="upload" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="upload" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Upload
+            </TabsTrigger>
+            <TabsTrigger value="prices" className="gap-2">
+              <Pencil className="h-4 w-4" />
+              Edit Prices
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upload">
+            <section className="grid lg:grid-cols-3 gap-6">
+              <main className="lg:col-span-2">
+                <BrochureUpload />
+              </main>
+              <aside>
+                <RecentUploadsCard />
+              </aside>
+            </section>
+          </TabsContent>
+
+          <TabsContent value="prices">
+            <PriceEditor />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
