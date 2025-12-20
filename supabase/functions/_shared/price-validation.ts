@@ -1,6 +1,6 @@
 // ============================================================
-// SINGLE SOURCE OF TRUTH for price validation thresholds (CLIENT MIRROR)
-// This MUST stay in sync with supabase/functions/_shared/price-validation.ts
+// SINGLE SOURCE OF TRUTH for price validation thresholds
+// Used by both edge functions (server) and can be mirrored to client
 // ============================================================
 
 export const ABSOLUTE_MIN_PRICE = 0.30;
@@ -91,12 +91,12 @@ export const MIN_PRICES_BY_PRODUCT: Record<string, number> = {
   nuts: 4.00,
 };
 
-type PriceLike = {
+export interface PriceLike {
   product_id: string;
   price: number;
   promo_price: number | null;
   is_promo: boolean;
-};
+}
 
 export function getEffectivePrice(p: PriceLike): number {
   const value = p.is_promo && p.promo_price != null ? p.promo_price : p.price;
@@ -107,5 +107,18 @@ export function isSuspiciousPrice(productId: string, effectivePrice: number): bo
   if (!Number.isFinite(effectivePrice)) return true;
 
   const min = MIN_PRICES_BY_PRODUCT[productId] ?? ABSOLUTE_MIN_PRICE;
+  return effectivePrice < ABSOLUTE_MIN_PRICE || effectivePrice < min;
+}
+
+// For extracted products (before mapping to Price format)
+export function isExtractedPriceSuspicious(
+  mappedProductId: string | null,
+  rawPrice: number | null,
+  promoPrice: number | null
+): boolean {
+  const effectivePrice = promoPrice ?? rawPrice;
+  if (effectivePrice == null || !Number.isFinite(effectivePrice)) return true;
+
+  const min = mappedProductId ? (MIN_PRICES_BY_PRODUCT[mappedProductId] ?? ABSOLUTE_MIN_PRICE) : ABSOLUTE_MIN_PRICE;
   return effectivePrice < ABSOLUTE_MIN_PRICE || effectivePrice < min;
 }
