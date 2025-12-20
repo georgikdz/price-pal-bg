@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { 
+  MIN_PRICES_BY_PRODUCT, 
+  ABSOLUTE_MIN_PRICE, 
+  isExtractedPriceSuspicious 
+} from "../_shared/price-validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -344,25 +349,7 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
 
     console.log(`Extracted ${extractedProducts.length} products`);
 
-    // Minimum price thresholds by product category
-    const MIN_PRICES: Record<string, number> = {
-      'bread': 0.70, 'flour': 0.60, 'rice': 1.00, 'pasta': 0.80, 'banitsa': 1.00, 'pita': 0.50,
-      'milk': 1.20, 'yogurt': 0.50, 'butter': 3.00, 'eggs': 2.00, 'sour-cream': 1.00,
-      'kashkaval': 6.00, 'sirene': 5.00, 'cream-cheese': 1.50,
-      'sunflower-oil': 2.00, 'olive-oil': 6.00,
-      'tomatoes': 0.80, 'cucumbers': 0.60, 'potatoes': 0.50, 'onions': 0.50, 'carrots': 0.50,
-      'peppers': 0.80, 'cabbage': 0.40, 'lettuce': 0.80, 'garlic': 3.00,
-      'lemons': 1.50, 'apples': 0.80, 'bananas': 1.00, 'oranges': 1.00, 'grapes': 2.00, 'watermelon': 0.30,
-      'chicken': 4.00, 'chicken-breast': 7.00, 'minced-meat': 6.00, 'pork': 6.00, 'pork-chops': 6.00,
-      'beef': 10.00, 'sausages': 4.00, 'kebapche': 0.30, 'kyufte': 0.30, 'lukanka': 10.00, 'ham': 6.00,
-      'fish': 5.00, 'salmon': 15.00, 'tuna': 2.00, 'mackerel': 2.00,
-      'sugar': 1.00, 'salt': 0.30, 'coffee': 3.00, 'tea': 1.00, 'honey': 4.00,
-      'tomato-paste': 0.80, 'canned-beans': 0.80, 'canned-corn': 0.80, 'pickles': 1.00,
-      'biscuits': 0.80, 'chocolate': 1.00, 'chips': 1.00, 'wafers': 0.60, 'nuts': 2.00,
-      'water': 0.30, 'juice': 1.00, 'cola': 1.00, 'beer': 0.80, 'wine': 3.00,
-    };
-
-    // Validate and clean extracted products
+    // Validate and clean extracted products using shared validation
     const cleanedProducts = extractedProducts
       .map((p: any) => {
         let rawPrice = parseFloat(p.raw_price) || null;
@@ -387,22 +374,15 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
         };
       })
       .filter((p: any) => {
-        // Filter out products with suspiciously low prices
-        const productId = p.mapped_product_id;
-        const minPrice = productId ? MIN_PRICES[productId] : 0.30;
-        const effectivePrice = p.promo_price || p.raw_price;
-        
-        if (effectivePrice && minPrice && effectivePrice < minPrice) {
-          console.log(`Filtering out suspicious price for ${p.raw_name} (${productId}): ${effectivePrice} < min ${minPrice}`);
+        // Use shared validation logic
+        if (isExtractedPriceSuspicious(p.mapped_product_id, p.raw_price, p.promo_price)) {
+          const effectivePrice = p.promo_price ?? p.raw_price;
+          const minPrice = p.mapped_product_id 
+            ? (MIN_PRICES_BY_PRODUCT[p.mapped_product_id] ?? ABSOLUTE_MIN_PRICE) 
+            : ABSOLUTE_MIN_PRICE;
+          console.log(`Filtering out suspicious price for ${p.raw_name} (${p.mapped_product_id}): ${effectivePrice} < min ${minPrice}`);
           return false;
         }
-        
-        // Filter out any price below 0.20 BGN (absolute minimum)
-        if (effectivePrice && effectivePrice < 0.20) {
-          console.log(`Filtering out unrealistic price: ${p.raw_name} = ${effectivePrice} BGN`);
-          return false;
-        }
-        
         return true;
       });
 
