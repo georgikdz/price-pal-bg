@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, TrendingDown, LogIn, LogOut } from 'lucide-react';
+import { BarChart3, ShoppingCart, TrendingDown, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -72,18 +72,11 @@ export function Header() {
             </Badge>
           )}
 
-          {user ? (
+          {user && (
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Изход</span>
             </Button>
-          ) : (
-            <Link to="/auth">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">Вход</span>
-              </Button>
-            </Link>
           )}
         </div>
       </div>
