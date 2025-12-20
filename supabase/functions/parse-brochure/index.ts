@@ -28,37 +28,93 @@ const requestSchema = z.object({
   images: z.array(imageSchema).min(1, 'Необходимо е поне едно изображение').max(MAX_IMAGES, `Максимум ${MAX_IMAGES} изображения`)
 });
 
+// Extended product catalog for better matching
 const CANONICAL_PRODUCTS = [
-  { id: 'kashkaval', name: 'Yellow Cheese (Kashkaval)', nameBg: 'Кашкавал', category: 'dairy' },
-  { id: 'sirene', name: 'White Cheese (Sirene)', nameBg: 'Сирене', category: 'dairy' },
-  { id: 'milk', name: 'Milk 3.6%', nameBg: 'Прясно мляко', category: 'dairy' },
-  { id: 'yogurt', name: 'Bulgarian Yogurt', nameBg: 'кисело мляко', category: 'dairy' },
-  { id: 'butter', name: 'Butter', nameBg: 'Масло', category: 'dairy' },
-  { id: 'eggs', name: 'Eggs', nameBg: 'Яйца', category: 'dairy' },
-  { id: 'sunflower-oil', name: 'Sunflower Oil', nameBg: 'Слънчогледово олио', category: 'oils' },
-  { id: 'olive-oil', name: 'Olive Oil', nameBg: 'Зехтин', category: 'oils' },
-  { id: 'flour', name: 'White Flour', nameBg: 'Брашно', category: 'grains' },
-  { id: 'bread', name: 'White Bread', nameBg: 'Хляб', category: 'grains' },
-  { id: 'rice', name: 'White Rice', nameBg: 'Ориз', category: 'grains' },
-  { id: 'pasta', name: 'Pasta', nameBg: 'Макарони', category: 'grains' },
-  { id: 'tomatoes', name: 'Tomatoes', nameBg: 'Домати', category: 'produce' },
-  { id: 'cucumbers', name: 'Cucumbers', nameBg: 'Краставици', category: 'produce' },
-  { id: 'potatoes', name: 'Potatoes', nameBg: 'Картофи', category: 'produce' },
-  { id: 'onions', name: 'Onions', nameBg: 'Лук', category: 'produce' },
-  { id: 'lemons', name: 'Lemons', nameBg: 'Лимони', category: 'produce' },
-  { id: 'apples', name: 'Apples', nameBg: 'Ябълки', category: 'produce' },
-  { id: 'bananas', name: 'Bananas', nameBg: 'Банани', category: 'produce' },
-  { id: 'chicken', name: 'Chicken', nameBg: 'Пилешко', category: 'proteins' },
-  { id: 'minced-meat', name: 'Minced Meat', nameBg: 'Кайма', category: 'proteins' },
-  { id: 'pork', name: 'Pork', nameBg: 'Свинско', category: 'proteins' },
-  { id: 'sugar', name: 'White Sugar', nameBg: 'Захар', category: 'pantry' },
-  { id: 'salt', name: 'Table Salt', nameBg: 'Сол', category: 'pantry' },
-  { id: 'coffee', name: 'Ground Coffee', nameBg: 'Кафе', category: 'pantry' },
-  { id: 'tomato-paste', name: 'Tomato Paste', nameBg: 'Доматено пюре', category: 'pantry' },
-  { id: 'biscuits', name: 'Biscuits', nameBg: 'Бисквити', category: 'snacks' },
-  { id: 'chocolate', name: 'Chocolate', nameBg: 'Шоколад', category: 'snacks' },
-  { id: 'water', name: 'Mineral Water', nameBg: 'Минерална вода', category: 'beverages' },
-  { id: 'juice', name: 'Orange Juice', nameBg: 'Сок', category: 'beverages' },
+  // Dairy
+  { id: 'kashkaval', nameBg: 'кашкавал', keywords: ['кашкавал', 'жълто сирене', 'yellow cheese'] },
+  { id: 'sirene', nameBg: 'сирене', keywords: ['краве сирене', 'бяло сирене', 'сирене', 'feta'] },
+  { id: 'cream-cheese', nameBg: 'крема сирене', keywords: ['крема сирене', 'cream cheese', 'филаделфия', 'arla'] },
+  { id: 'milk', nameBg: 'мляко', keywords: ['прясно мляко', 'мляко', 'milk', 'olympus'] },
+  { id: 'yogurt', nameBg: 'кисело мляко', keywords: ['кисело мляко', 'йогурт', 'yogurt', 'домашно'] },
+  { id: 'butter', nameBg: 'масло', keywords: ['масло', 'butter', 'краве масло'] },
+  { id: 'eggs', nameBg: 'яйца', keywords: ['яйца', 'яйце', 'eggs'] },
+  { id: 'sour-cream', nameBg: 'сметана', keywords: ['сметана', 'заквасена сметана', 'sour cream'] },
+  
+  // Oils
+  { id: 'sunflower-oil', nameBg: 'олио', keywords: ['олио', 'слънчогледово', 'sunflower oil', 'златно', 'добруджанско'] },
+  { id: 'olive-oil', nameBg: 'зехтин', keywords: ['зехтин', 'маслиново масло', 'olive oil', 'extra virgin'] },
+  
+  // Grains & Bakery
+  { id: 'flour', nameBg: 'брашно', keywords: ['брашно', 'flour'] },
+  { id: 'bread', nameBg: 'хляб', keywords: ['хляб', 'bread', 'питка', 'франзела'] },
+  { id: 'rice', nameBg: 'ориз', keywords: ['ориз', 'rice', 'български ориз'] },
+  { id: 'pasta', nameBg: 'макарони', keywords: ['макарони', 'паста', 'спагети', 'pasta', 'spaghetti'] },
+  { id: 'banitsa', nameBg: 'баница', keywords: ['баница', 'баничка'] },
+  { id: 'pita', nameBg: 'питка', keywords: ['питка', 'пърленка', 'pita'] },
+  
+  // Produce - Vegetables
+  { id: 'tomatoes', nameBg: 'домати', keywords: ['домати', 'домат', 'tomatoes', 'розови домати', 'чери'] },
+  { id: 'cucumbers', nameBg: 'краставици', keywords: ['краставици', 'краставица', 'cucumbers', 'оранжерийни'] },
+  { id: 'potatoes', nameBg: 'картофи', keywords: ['картофи', 'картоф', 'potatoes'] },
+  { id: 'sweet-potatoes', nameBg: 'сладки картофи', keywords: ['сладки картофи', 'sweet potatoes', 'батат'] },
+  { id: 'onions', nameBg: 'лук', keywords: ['лук', 'onions', 'кромид'] },
+  { id: 'carrots', nameBg: 'моркови', keywords: ['моркови', 'морков', 'carrots'] },
+  { id: 'peppers', nameBg: 'чушки', keywords: ['чушки', 'чушка', 'пипер', 'peppers', 'камби'] },
+  { id: 'cabbage', nameBg: 'зеле', keywords: ['зеле', 'cabbage'] },
+  { id: 'lettuce', nameBg: 'маруля', keywords: ['маруля', 'салата', 'lettuce'] },
+  { id: 'garlic', nameBg: 'чесън', keywords: ['чесън', 'garlic'] },
+  
+  // Produce - Fruits
+  { id: 'lemons', nameBg: 'лимони', keywords: ['лимони', 'лимон', 'lemons'] },
+  { id: 'apples', nameBg: 'ябълки', keywords: ['ябълки', 'ябълка', 'apples', 'голден'] },
+  { id: 'bananas', nameBg: 'банани', keywords: ['банани', 'банан', 'bananas'] },
+  { id: 'oranges', nameBg: 'портокали', keywords: ['портокали', 'портокал', 'oranges'] },
+  { id: 'grapes', nameBg: 'грозде', keywords: ['грозде', 'grapes'] },
+  { id: 'watermelon', nameBg: 'диня', keywords: ['диня', 'watermelon', 'пъпеш'] },
+  
+  // Proteins - Meat
+  { id: 'chicken', nameBg: 'пиле', keywords: ['пиле', 'пилешко', 'chicken', 'градус', 'охладено'] },
+  { id: 'chicken-breast', nameBg: 'пилешко филе', keywords: ['пилешко филе', 'филе', 'chicken breast'] },
+  { id: 'minced-meat', nameBg: 'кайма', keywords: ['кайма', 'minced meat', 'мляно месо', 'мащерски'] },
+  { id: 'pork', nameBg: 'свинско', keywords: ['свинско', 'свинска', 'pork', 'плешка', 'шницел', 'врат'] },
+  { id: 'pork-chops', nameBg: 'котлети', keywords: ['котлети', 'котлет', 'pork chops', 'свински котлет'] },
+  { id: 'beef', nameBg: 'телешко', keywords: ['телешко', 'beef', 'говеждо'] },
+  { id: 'sausages', nameBg: 'наденица', keywords: ['наденица', 'колбас', 'sausages', 'кренвирш'] },
+  { id: 'kebapche', nameBg: 'кебапче', keywords: ['кебапче', 'kebab'] },
+  { id: 'kyufte', nameBg: 'кюфте', keywords: ['кюфте', 'кюфтета'] },
+  { id: 'lukanka', nameBg: 'луканка', keywords: ['луканка', 'салам', 'сух колбас'] },
+  { id: 'ham', nameBg: 'шунка', keywords: ['шунка', 'ham', 'бекон', 'bacon'] },
+  
+  // Proteins - Fish
+  { id: 'fish', nameBg: 'риба', keywords: ['риба', 'fish'] },
+  { id: 'salmon', nameBg: 'сьомга', keywords: ['сьомга', 'salmon'] },
+  { id: 'tuna', nameBg: 'риба тон', keywords: ['риба тон', 'тон', 'tuna'] },
+  { id: 'mackerel', nameBg: 'скумрия', keywords: ['скумрия', 'mackerel'] },
+  
+  // Pantry
+  { id: 'sugar', nameBg: 'захар', keywords: ['захар', 'sugar'] },
+  { id: 'salt', nameBg: 'сол', keywords: ['сол', 'salt'] },
+  { id: 'coffee', nameBg: 'кафе', keywords: ['кафе', 'coffee', 'капсули', 'dolce gusto', 'nescafe'] },
+  { id: 'tea', nameBg: 'чай', keywords: ['чай', 'tea'] },
+  { id: 'honey', nameBg: 'мед', keywords: ['мед', 'honey'] },
+  { id: 'tomato-paste', nameBg: 'доматено пюре', keywords: ['доматено пюре', 'томатено', 'tomato paste'] },
+  { id: 'canned-beans', nameBg: 'боб', keywords: ['боб', 'фасул', 'beans'] },
+  { id: 'canned-corn', nameBg: 'царевица', keywords: ['царевица', 'corn'] },
+  { id: 'pickles', nameBg: 'краставички', keywords: ['кисели краставички', 'туршия', 'pickles'] },
+  
+  // Snacks
+  { id: 'biscuits', nameBg: 'бисквити', keywords: ['бисквити', 'biscuits', 'cookies'] },
+  { id: 'chocolate', nameBg: 'шоколад', keywords: ['шоколад', 'chocolate', 'milka', 'oreo'] },
+  { id: 'chips', nameBg: 'чипс', keywords: ['чипс', 'chips', 'ruffles', 'lays'] },
+  { id: 'wafers', nameBg: 'вафли', keywords: ['вафли', 'вафла', 'wafers', 'хели'] },
+  { id: 'nuts', nameBg: 'ядки', keywords: ['ядки', 'бадеми', 'фъстъци', 'nuts', 'almonds'] },
+  
+  // Beverages
+  { id: 'water', nameBg: 'вода', keywords: ['минерална вода', 'вода', 'water'] },
+  { id: 'juice', nameBg: 'сок', keywords: ['сок', 'juice', 'нектар'] },
+  { id: 'cola', nameBg: 'кола', keywords: ['кола', 'cola', 'pepsi', 'coca'] },
+  { id: 'beer', nameBg: 'бира', keywords: ['бира', 'beer'] },
+  { id: 'wine', nameBg: 'вино', keywords: ['вино', 'wine'] },
 ];
 
 serve(async (req) => {
@@ -165,48 +221,59 @@ serve(async (req) => {
 
     // Build AI request with images
     const productListStr = CANONICAL_PRODUCTS.map(p => 
-      `- ${p.id}: ${p.name} / ${p.nameBg}`
+      `- ${p.id}: ${p.nameBg} (keywords: ${p.keywords.join(', ')})`
     ).join('\n');
 
     const systemPrompt = `You are an expert at extracting product and price information from Bulgarian grocery store brochures.
 
 Your task is to analyze the brochure page images and extract all food products with their prices.
 
-CANONICAL PRODUCTS (use these IDs when matching):
+CANONICAL PRODUCTS (use these IDs when matching, check keywords for better matching):
 ${productListStr}
 
 CRITICAL PRICE EXTRACTION RULES:
-- Prices in Bulgarian brochures are in BGN (лв.)
-- Look for the LARGE displayed price - this is usually the promotional/sale price
-- The smaller crossed-out or "was" price is the regular price
-- Common Bulgarian price labels: "САМО" (only), "ЦЕНА" (price), "лв." or "лв" (BGN currency)
-- Pay attention to price per unit labels like "за кг" (per kg), "за бр." (per piece), "за л" (per liter)
-- Typical grocery prices in Bulgaria:
-  * Fruits/vegetables: 1-5 BGN/kg (e.g., cucumbers ~2-4 BGN/kg, tomatoes ~2-5 BGN/kg)
-  * Meat: 8-20 BGN/kg
-  * Dairy: 2-15 BGN depending on size
-  * If a price seems unusually low (like 0.05 BGN/kg), double-check the decimal point
-- Watch for prices shown as "X.XX лв./кг" which means price per kilogram
+1. Bulgarian prices are in BGN (лв. or лева)
+2. PROMO PRICE: The LARGE, highlighted price is the PROMOTIONAL/SALE price
+3. REGULAR PRICE: The smaller, often crossed-out price is the ORIGINAL/REGULAR price
+4. If a price is shown as "Само X.XX лв." - this is the promo price
+5. If you see two prices, the higher one is regular, the lower one is promo
+
+PRICE SANITY CHECKS (Bulgarian market prices):
+- Vegetables/fruits: typically 1-8 BGN/kg
+- Meat: typically 6-25 BGN/kg  
+- Dairy (yogurt 400g): typically 0.70-2.00 BGN
+- Cheese (1kg): typically 10-20 BGN
+- Eggs (10 pcs): typically 3-6 BGN
+- Oil (1L): typically 2-5 BGN
+- If a price per kg is below 0.50 BGN, you probably misread it
+
+UNIT NORMALIZATION:
+- "за кг" or "кг" = per kilogram
+- "за 100 г" = per 100 grams (multiply by 10 for per kg price)
+- "бр" or "бр." = per piece
+- "л" = per liter
 
 For each product found, extract:
-1. raw_name: The exact product name as written in the brochure (in Bulgarian)
-2. raw_price: The ORIGINAL/REGULAR price in BGN (the higher price, often crossed out). Just the number, e.g., 5.99
-3. raw_unit: The unit/quantity (e.g., "1 kg", "500g", "1 L", "1 бр.", "за кг")
-4. promo_price: The PROMOTIONAL/SALE price (the lower, highlighted price), or null if not on sale
-5. mapped_product_id: The best matching canonical product ID from the list above, or null if no match
-6. confidence_score: Your confidence in the mapping (0.0 to 1.0)
+1. raw_name: The exact product name as written (in Bulgarian)
+2. raw_price: The REGULAR price (higher price, may be crossed out). Number only.
+3. promo_price: The PROMOTIONAL price (lower, highlighted price). Number only, or null if not on sale.
+4. raw_unit: The unit/quantity exactly as shown (e.g., "1 кг", "400 г", "10 бр")
+5. mapped_product_id: Best matching canonical product ID, or null if no match
+6. confidence_score: Confidence in the mapping (0.0 to 1.0)
 
-IMPORTANT: If both prices are shown (crossed out and sale price), raw_price = original/crossed out price, promo_price = sale price.
-If only one price is shown, that's the raw_price and promo_price should be null.
+IMPORTANT LOGIC:
+- If ONLY ONE price is shown (no crossed-out price), set raw_price to that price and promo_price to null
+- If TWO prices are shown: raw_price = higher/crossed-out price, promo_price = lower/highlighted price
+- NEVER set raw_price lower than promo_price
 
-Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
-[{"raw_name":"Краставици","raw_price":3.99,"raw_unit":"1 кг","promo_price":2.49,"mapped_product_id":"cucumbers","confidence_score":0.95}]`;
+Return ONLY a valid JSON array. No markdown, no explanation. Example:
+[{"raw_name":"Краставици оранжерийни","raw_price":2.99,"promo_price":1.49,"raw_unit":"1 кг","mapped_product_id":"cucumbers","confidence_score":0.95}]`;
 
     // Build content array with all images
     const userContent: any[] = [
       {
         type: 'text',
-        text: `Analyze these ${images.length} page(s) from a ${store} grocery brochure and extract all food products with prices. Return ONLY valid JSON array combining products from all pages.`,
+        text: `Analyze these ${images.length} page(s) from a ${store} grocery brochure. Extract ALL food products with prices. Return ONLY valid JSON array.`,
       },
     ];
 
@@ -269,14 +336,38 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
 
     console.log(`Extracted ${extractedProducts.length} products`);
 
+    // Validate and clean extracted products
+    const cleanedProducts = extractedProducts.map((p: any) => {
+      let rawPrice = parseFloat(p.raw_price) || null;
+      let promoPrice = p.promo_price ? parseFloat(p.promo_price) : null;
+      
+      // Ensure raw_price >= promo_price (swap if needed)
+      if (rawPrice && promoPrice && rawPrice < promoPrice) {
+        console.log(`Swapping prices for ${p.raw_name}: raw=${rawPrice}, promo=${promoPrice}`);
+        [rawPrice, promoPrice] = [promoPrice, rawPrice];
+      }
+      
+      // If only promo_price and no raw_price, treat promo as raw
+      if (!rawPrice && promoPrice) {
+        rawPrice = promoPrice;
+        promoPrice = null;
+      }
+      
+      return {
+        ...p,
+        raw_price: rawPrice,
+        promo_price: promoPrice,
+      };
+    });
+
     // Insert extracted products into database
-    if (extractedProducts.length > 0) {
-      const productsToInsert = extractedProducts.map((p: any) => ({
+    if (cleanedProducts.length > 0) {
+      const productsToInsert = cleanedProducts.map((p: any) => ({
         brochure_id: brochureId,
         raw_name: p.raw_name || 'Unknown',
-        raw_price: p.raw_price || null,
+        raw_price: p.raw_price,
         raw_unit: p.raw_unit || null,
-        promo_price: p.promo_price || null,
+        promo_price: p.promo_price,
         mapped_product_id: p.mapped_product_id || null,
         confidence_score: p.confidence_score || 0,
       }));
@@ -290,16 +381,18 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
         throw insertError;
       }
 
-      // Insert prices for mapped products
-      const pricesToInsert = extractedProducts
-        .filter((p: any) => p.mapped_product_id && p.raw_price)
+      // Insert prices for mapped products with correct price logic
+      const pricesToInsert = cleanedProducts
+        .filter((p: any) => p.mapped_product_id && (p.raw_price || p.promo_price))
         .map((p: any) => ({
           product_id: p.mapped_product_id,
           store: store,
           brand: p.raw_name || null,
-          price: p.promo_price || p.raw_price,
-          promo_price: p.promo_price || null,
-          is_promo: !!p.promo_price,
+          // price = regular price (raw_price), or promo_price if no regular
+          price: p.raw_price || p.promo_price,
+          // promo_price only if it exists AND is different from regular
+          promo_price: p.promo_price && p.promo_price !== p.raw_price ? p.promo_price : null,
+          is_promo: !!(p.promo_price && p.promo_price !== p.raw_price),
           unit: p.raw_unit || null,
           brochure_id: brochureId,
         }));
@@ -322,7 +415,7 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
       .from('brochure_uploads')
       .update({ 
         status: 'completed', 
-        products_found: extractedProducts.length 
+        products_found: cleanedProducts.length 
       })
       .eq('id', brochureId);
 
@@ -334,8 +427,8 @@ Return ONLY a valid JSON array of objects. No explanation or markdown. Example:
     return new Response(
       JSON.stringify({ 
         success: true, 
-        productsFound: extractedProducts.length,
-        products: extractedProducts 
+        productsFound: cleanedProducts.length,
+        products: cleanedProducts 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -15,7 +15,7 @@ export interface CanonicalProduct {
   name: string;
   nameBg: string;
   category: ProductCategory;
-  unit: 'kg' | 'L' | 'pcs' | '100g';
+  unit: 'kg' | 'L' | 'pcs' | '100g' | 'g';
   icon: string;
 }
 
