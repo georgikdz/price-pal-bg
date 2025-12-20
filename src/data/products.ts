@@ -5,7 +5,7 @@ export const CANONICAL_PRODUCTS: CanonicalProduct[] = [
   { id: 'kashkaval', name: 'Yellow Cheese (Kashkaval)', nameBg: 'Кашкавал', category: 'dairy', unit: 'kg', icon: '🧀' },
   { id: 'sirene', name: 'White Cheese (Sirene)', nameBg: 'Сирене', category: 'dairy', unit: 'kg', icon: '🧀' },
   { id: 'milk', name: 'Milk 3.6%', nameBg: 'Прясно мляко 3.6%', category: 'dairy', unit: 'L', icon: '🥛' },
-  { id: 'yogurt', name: 'Bulgarian Yogurt', nameBg: 'Българско кисело мляко', category: 'dairy', unit: 'kg', icon: '🥛' },
+  { id: 'yogurt', name: 'Bulgarian Yogurt', nameBg: 'Българско кисело мляко', category: 'dairy', unit: 'kg', icon: '🥣' },
   { id: 'butter', name: 'Butter', nameBg: 'Масло', category: 'dairy', unit: 'kg', icon: '🧈' },
   { id: 'eggs', name: 'Eggs (10 pcs)', nameBg: 'Яйца (10 бр.)', category: 'dairy', unit: 'pcs', icon: '🥚' },
   
