@@ -238,18 +238,25 @@ CRITICAL PRICE EXTRACTION RULES:
 4. If a price is shown as "Само X.XX лв." - this is the promo price
 5. If you see two prices, the higher one is regular, the lower one is promo
 
-PRICE SANITY CHECKS (Bulgarian market prices):
-- Vegetables/fruits: typically 1-8 BGN/kg
-- Meat: typically 6-25 BGN/kg  
-- Dairy (yogurt 400g): typically 0.70-2.00 BGN
-- Cheese (1kg): typically 10-20 BGN
-- Eggs (10 pcs): typically 3-6 BGN
-- Oil (1L): typically 2-5 BGN
-- If a price per kg is below 0.50 BGN, you probably misread it
+MANDATORY PRICE SANITY CHECKS (reject if outside these ranges):
+- Bread (хляб): 0.80 - 6.00 BGN per piece or loaf
+- Vegetables/fruits: 0.50 - 12.00 BGN/kg
+- Meat: 5.00 - 35.00 BGN/kg  
+- Dairy (yogurt 400g): 0.60 - 3.00 BGN
+- Dairy (milk 1L): 1.50 - 4.00 BGN
+- Cheese (1kg): 8.00 - 30.00 BGN
+- Eggs (10 pcs): 2.50 - 8.00 BGN
+- Oil (1L): 2.00 - 8.00 BGN
+- Flour (1kg): 0.80 - 3.00 BGN
+
+CRITICAL: If a price seems too low (e.g., bread for 0.11 BGN), you have likely misread it!
+- Double-check the decimal point position
+- Make sure you're not confusing price-per-100g with price-per-kg
+- Prices below 0.50 BGN for any food item are extremely suspicious
 
 UNIT NORMALIZATION:
 - "за кг" or "кг" = per kilogram
-- "за 100 г" = per 100 grams (multiply by 10 for per kg price)
+- "за 100 г" = per 100 grams (DO NOT multiply - report as-is with unit "100 г")
 - "бр" or "бр." = per piece
 - "л" = per liter
 
@@ -265,6 +272,7 @@ IMPORTANT LOGIC:
 - If ONLY ONE price is shown (no crossed-out price), set raw_price to that price and promo_price to null
 - If TWO prices are shown: raw_price = higher/crossed-out price, promo_price = lower/highlighted price
 - NEVER set raw_price lower than promo_price
+- Skip any product where the price seems unrealistically low
 
 Return ONLY a valid JSON array. No markdown, no explanation. Example:
 [{"raw_name":"Краставици оранжерийни","raw_price":2.99,"promo_price":1.49,"raw_unit":"1 кг","mapped_product_id":"cucumbers","confidence_score":0.95}]`;
@@ -336,29 +344,67 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
 
     console.log(`Extracted ${extractedProducts.length} products`);
 
+    // Minimum price thresholds by product category
+    const MIN_PRICES: Record<string, number> = {
+      'bread': 0.70, 'flour': 0.60, 'rice': 1.00, 'pasta': 0.80, 'banitsa': 1.00, 'pita': 0.50,
+      'milk': 1.20, 'yogurt': 0.50, 'butter': 3.00, 'eggs': 2.00, 'sour-cream': 1.00,
+      'kashkaval': 6.00, 'sirene': 5.00, 'cream-cheese': 1.50,
+      'sunflower-oil': 2.00, 'olive-oil': 6.00,
+      'tomatoes': 0.80, 'cucumbers': 0.60, 'potatoes': 0.50, 'onions': 0.50, 'carrots': 0.50,
+      'peppers': 0.80, 'cabbage': 0.40, 'lettuce': 0.80, 'garlic': 3.00,
+      'lemons': 1.50, 'apples': 0.80, 'bananas': 1.00, 'oranges': 1.00, 'grapes': 2.00, 'watermelon': 0.30,
+      'chicken': 4.00, 'chicken-breast': 7.00, 'minced-meat': 6.00, 'pork': 6.00, 'pork-chops': 6.00,
+      'beef': 10.00, 'sausages': 4.00, 'kebapche': 0.30, 'kyufte': 0.30, 'lukanka': 10.00, 'ham': 6.00,
+      'fish': 5.00, 'salmon': 15.00, 'tuna': 2.00, 'mackerel': 2.00,
+      'sugar': 1.00, 'salt': 0.30, 'coffee': 3.00, 'tea': 1.00, 'honey': 4.00,
+      'tomato-paste': 0.80, 'canned-beans': 0.80, 'canned-corn': 0.80, 'pickles': 1.00,
+      'biscuits': 0.80, 'chocolate': 1.00, 'chips': 1.00, 'wafers': 0.60, 'nuts': 2.00,
+      'water': 0.30, 'juice': 1.00, 'cola': 1.00, 'beer': 0.80, 'wine': 3.00,
+    };
+
     // Validate and clean extracted products
-    const cleanedProducts = extractedProducts.map((p: any) => {
-      let rawPrice = parseFloat(p.raw_price) || null;
-      let promoPrice = p.promo_price ? parseFloat(p.promo_price) : null;
-      
-      // Ensure raw_price >= promo_price (swap if needed)
-      if (rawPrice && promoPrice && rawPrice < promoPrice) {
-        console.log(`Swapping prices for ${p.raw_name}: raw=${rawPrice}, promo=${promoPrice}`);
-        [rawPrice, promoPrice] = [promoPrice, rawPrice];
-      }
-      
-      // If only promo_price and no raw_price, treat promo as raw
-      if (!rawPrice && promoPrice) {
-        rawPrice = promoPrice;
-        promoPrice = null;
-      }
-      
-      return {
-        ...p,
-        raw_price: rawPrice,
-        promo_price: promoPrice,
-      };
-    });
+    const cleanedProducts = extractedProducts
+      .map((p: any) => {
+        let rawPrice = parseFloat(p.raw_price) || null;
+        let promoPrice = p.promo_price ? parseFloat(p.promo_price) : null;
+        
+        // Ensure raw_price >= promo_price (swap if needed)
+        if (rawPrice && promoPrice && rawPrice < promoPrice) {
+          console.log(`Swapping prices for ${p.raw_name}: raw=${rawPrice}, promo=${promoPrice}`);
+          [rawPrice, promoPrice] = [promoPrice, rawPrice];
+        }
+        
+        // If only promo_price and no raw_price, treat promo as raw
+        if (!rawPrice && promoPrice) {
+          rawPrice = promoPrice;
+          promoPrice = null;
+        }
+        
+        return {
+          ...p,
+          raw_price: rawPrice,
+          promo_price: promoPrice,
+        };
+      })
+      .filter((p: any) => {
+        // Filter out products with suspiciously low prices
+        const productId = p.mapped_product_id;
+        const minPrice = productId ? MIN_PRICES[productId] : 0.30;
+        const effectivePrice = p.promo_price || p.raw_price;
+        
+        if (effectivePrice && minPrice && effectivePrice < minPrice) {
+          console.log(`Filtering out suspicious price for ${p.raw_name} (${productId}): ${effectivePrice} < min ${minPrice}`);
+          return false;
+        }
+        
+        // Filter out any price below 0.20 BGN (absolute minimum)
+        if (effectivePrice && effectivePrice < 0.20) {
+          console.log(`Filtering out unrealistic price: ${p.raw_name} = ${effectivePrice} BGN`);
+          return false;
+        }
+        
+        return true;
+      });
 
     // Insert extracted products into database
     if (cleanedProducts.length > 0) {
