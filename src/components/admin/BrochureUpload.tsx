@@ -102,7 +102,9 @@ export function BrochureUpload() {
 
       setPdfProgress({ currentPage: 0, totalPages: 0 });
 
-      const images = await pdfToImages(pdfFile, Infinity, 1.5, 0.7, setPdfProgress);
+      // Max 50 pages to match server limit
+      const MAX_PAGES = 50;
+      const images = await pdfToImages(pdfFile, MAX_PAGES, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Неуспешно извличане на страници от PDF');
@@ -172,8 +174,9 @@ export function BrochureUpload() {
     setPdfProgress({ currentPage: 0, totalPages: 0 });
 
     try {
-      // Convert PDF pages to images client-side (bypasses PDF size limit)
-      const images = await pdfToImages(file, Infinity, 1.5, 0.7, setPdfProgress);
+      // Convert PDF pages to images client-side (max 50 pages to match server limit)
+      const MAX_PAGES = 50;
+      const images = await pdfToImages(file, MAX_PAGES, 1.5, 0.7, setPdfProgress);
       
       if (images.length === 0) {
         throw new Error('Неуспешно извличане на страници от PDF');
