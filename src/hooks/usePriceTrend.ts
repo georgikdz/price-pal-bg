@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Price } from './usePrices';
 import { differenceInDays } from 'date-fns';
+import { getEffectivePrice, isSuspiciousPrice } from '@/lib/priceSanity';
 
 export interface PriceTrend {
   productId: string;
@@ -27,9 +28,10 @@ export function usePriceTrends() {
       
       if (error) throw error;
       
-      const prices = data as Price[];
+      const pricesRaw = data as Price[];
+      const prices = pricesRaw.filter((p) => !isSuspiciousPrice(p.product_id, getEffectivePrice(p)));
       const trendsMap = new Map<string, PriceTrend>();
-      
+
       // Group by product_id + store
       const grouped = new Map<string, Price[]>();
       for (const price of prices) {
@@ -50,9 +52,7 @@ export function usePriceTrends() {
         );
         
         const current = priceList[priceList.length - 1];
-        const currentEffective = current.is_promo && current.promo_price 
-          ? current.promo_price 
-          : current.price;
+        const currentEffective = getEffectivePrice(current);
         
         // Find price from about a week ago
         let previous: Price | null = null;
@@ -71,9 +71,7 @@ export function usePriceTrends() {
           previous = priceList[0];
         }
         
-        const previousEffective = previous 
-          ? (previous.is_promo && previous.promo_price ? previous.promo_price : previous.price)
-          : null;
+        const previousEffective = previous ? getEffectivePrice(previous) : null;
         
         let changePercent: number | null = null;
         let direction: 'up' | 'down' | 'stable' | null = null;

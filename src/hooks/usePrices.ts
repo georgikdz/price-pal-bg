@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CANONICAL_PRODUCTS, CATEGORY_LABELS } from '@/data/products';
 import { ProductCategory } from '@/types';
+import { getEffectivePrice, isSuspiciousPrice } from '@/lib/priceSanity';
 
 export interface Price {
   id: string;
@@ -42,15 +43,21 @@ export function useLatestPrices() {
       
       if (error) throw error;
       
-      // Group by product_id + store and take the latest
+      // Group by product_id + store and take the latest (skip obviously wrong prices)
       const latestMap = new Map<string, Price>();
       for (const price of (data as Price[])) {
         const key = `${price.product_id}-${price.store}`;
+
+        const effective = getEffectivePrice(price);
+        if (isSuspiciousPrice(price.product_id, effective)) {
+          continue;
+        }
+
         if (!latestMap.has(key)) {
           latestMap.set(key, price);
         }
       }
-      
+
       return Array.from(latestMap.values());
     },
   });
