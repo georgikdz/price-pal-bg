@@ -3,10 +3,26 @@
 // This MUST stay in sync with supabase/functions/_shared/price-validation.ts
 // ============================================================
 
+// Universal absolute minimum - NO food product in Bulgaria costs less than this
 export const ABSOLUTE_MIN_PRICE = 0.30;
 
-// Realistic minimum prices in BGN for Bulgarian grocery products
-// These are sanity checks - any price below these is almost certainly OCR/AI error
+// Category-based fallbacks for unknown products
+export const CATEGORY_MIN_PRICES: Record<string, number> = {
+  dairy: 0.50,
+  meat: 5.00,
+  fish: 3.00,
+  bakery: 0.60,
+  produce: 0.50,
+  pantry: 0.40,
+  beverages: 0.40,
+  snacks: 0.80,
+  oils: 2.00,
+};
+
+// Default fallback for completely unknown products
+export const DEFAULT_MIN_PRICE = 0.50;
+
+// Specific minimum prices for known products (BGN)
 export const MIN_PRICES_BY_PRODUCT: Record<string, number> = {
   // Bakery & Grains
   bread: 0.80,
@@ -91,6 +107,59 @@ export const MIN_PRICES_BY_PRODUCT: Record<string, number> = {
   nuts: 4.00,
 };
 
+// Maps product IDs to their category for fallback pricing
+export const PRODUCT_CATEGORIES: Record<string, string> = {
+  // Dairy
+  milk: 'dairy', yogurt: 'dairy', butter: 'dairy', eggs: 'dairy',
+  sirene: 'dairy', kashkaval: 'dairy', 'cream-cheese': 'dairy', 'sour-cream': 'dairy',
+  // Meat
+  chicken: 'meat', 'chicken-breast': 'meat', pork: 'meat', 'pork-chops': 'meat',
+  beef: 'meat', 'minced-meat': 'meat', sausages: 'meat', ham: 'meat',
+  lukanka: 'meat', kebapche: 'meat', kyufte: 'meat',
+  // Fish
+  fish: 'fish', salmon: 'fish', tuna: 'fish', mackerel: 'fish',
+  // Bakery
+  bread: 'bakery', flour: 'bakery', rice: 'bakery', pasta: 'bakery',
+  banitsa: 'bakery', pita: 'bakery',
+  // Produce
+  apples: 'produce', bananas: 'produce', oranges: 'produce', lemons: 'produce',
+  grapes: 'produce', tomatoes: 'produce', cucumbers: 'produce', peppers: 'produce',
+  potatoes: 'produce', onions: 'produce', carrots: 'produce', cabbage: 'produce',
+  lettuce: 'produce', 'sweet-potatoes': 'produce', garlic: 'produce', watermelon: 'produce',
+  // Oils
+  'sunflower-oil': 'oils', 'olive-oil': 'oils',
+  // Pantry
+  sugar: 'pantry', salt: 'pantry', honey: 'pantry', 'tomato-paste': 'pantry',
+  pickles: 'pantry', 'canned-beans': 'pantry', 'canned-corn': 'pantry',
+  // Beverages
+  water: 'beverages', juice: 'beverages', cola: 'beverages', beer: 'beverages',
+  wine: 'beverages', coffee: 'beverages', tea: 'beverages',
+  // Snacks
+  chocolate: 'snacks', biscuits: 'snacks', chips: 'snacks', wafers: 'snacks', nuts: 'snacks',
+};
+
+/**
+ * Get the minimum acceptable price for a product.
+ * Uses specific product price if known, otherwise falls back to category, then default.
+ */
+export function getMinPriceForProduct(productId: string | null): number {
+  if (!productId) return DEFAULT_MIN_PRICE;
+  
+  // First check specific product minimum
+  if (MIN_PRICES_BY_PRODUCT[productId] !== undefined) {
+    return MIN_PRICES_BY_PRODUCT[productId];
+  }
+  
+  // Fallback to category minimum
+  const category = PRODUCT_CATEGORIES[productId];
+  if (category && CATEGORY_MIN_PRICES[category] !== undefined) {
+    return CATEGORY_MIN_PRICES[category];
+  }
+  
+  // Final fallback
+  return DEFAULT_MIN_PRICE;
+}
+
 type PriceLike = {
   product_id: string;
   price: number;
@@ -103,9 +172,16 @@ export function getEffectivePrice(p: PriceLike): number {
   return Number.isFinite(value) ? value : NaN;
 }
 
+/**
+ * Universal price validation - works for any product, known or unknown.
+ */
 export function isSuspiciousPrice(productId: string, effectivePrice: number): boolean {
   if (!Number.isFinite(effectivePrice)) return true;
-
-  const min = MIN_PRICES_BY_PRODUCT[productId] ?? ABSOLUTE_MIN_PRICE;
-  return effectivePrice < ABSOLUTE_MIN_PRICE || effectivePrice < min;
+  
+  // Always reject prices below absolute minimum
+  if (effectivePrice < ABSOLUTE_MIN_PRICE) return true;
+  
+  // Check against product-specific or category minimum
+  const minPrice = getMinPriceForProduct(productId);
+  return effectivePrice < minPrice;
 }
