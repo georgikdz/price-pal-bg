@@ -1,28 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, Settings, TrendingDown, LogIn, LogOut } from 'lucide-react';
+import { BarChart3, ShoppingCart, TrendingDown, LogIn, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 
-const publicNavItems = [
+const navItems = [
   { path: '/', label: 'Начало', icon: BarChart3 },
   { path: '/compare', label: 'Сравнение', icon: ShoppingCart },
   { path: '/trends', label: 'Тенденции', icon: TrendingDown },
-];
-
-const adminNavItems = [
-  { path: '/admin', label: 'Админ', icon: Settings },
 ];
 
 export function Header() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isAdmin, loading: adminLoading } = useIsAdmin(user?.id);
-
-  // Show admin links while we're verifying role to avoid "missing Admin" UX.
-  const navItems = isAdmin || adminLoading ? [...publicNavItems, ...adminNavItems] : publicNavItems;
 
 
   const handleSignOut = async () => {
