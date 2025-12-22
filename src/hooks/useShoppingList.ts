@@ -55,18 +55,26 @@ export function useShoppingList() {
   const storeTotals = useMemo((): StoreTotals[] => {
     const stores: Store[] = ['billa', 'kaufland', 'lidl'];
     
+    console.log('[ShoppingList] Calculating totals for', items.length, 'items');
+    console.log('[ShoppingList] Available prices:', prices.length);
+    
     return stores.map(store => {
       let total = 0;
       let itemCount = 0;
       const missingItems: string[] = [];
 
       items.forEach(item => {
+        // Find price record for this product and store
         const priceRecord = prices.find(
           p => p.product_id === item.productId && p.store === store
         );
         
+        console.log(`[ShoppingList] ${store} - ${item.productId}: priceRecord =`, priceRecord ? `${priceRecord.price} (promo: ${priceRecord.promo_price})` : 'NOT FOUND');
+        
         if (priceRecord) {
           const effectivePrice = getEffectivePrice(priceRecord);
+          console.log(`[ShoppingList] ${store} - ${item.productId}: effectivePrice =`, effectivePrice);
+          
           if (effectivePrice !== undefined) {
             total += effectivePrice * item.quantity;
             itemCount++;
@@ -80,6 +88,7 @@ export function useShoppingList() {
         }
       });
 
+      console.log(`[ShoppingList] ${store} total: ${total}, items: ${itemCount}, missing: ${missingItems.length}`);
       return { store, total, itemCount, missingItems };
     });
   }, [items, prices]);
