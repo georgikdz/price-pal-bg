@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import Index from "./pages/Index";
 import ComparePage from "./pages/ComparePage";
 import TrendsPage from "./pages/TrendsPage";
+import ShoppingListPage from "./pages/ShoppingListPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/trends" element={<TrendsPage />} />
+            <Route path="/shopping-list" element={<ShoppingListPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
             <Route path="*" element={<NotFound />} />
