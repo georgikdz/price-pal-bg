@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, ShoppingCart, TrendingDown, LogOut } from 'lucide-react';
+import { BarChart3, GitCompare, TrendingDown, LogOut, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useIsAdmin } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 
 const navItems = [
   { path: '/', label: 'Начало', icon: BarChart3 },
-  { path: '/compare', label: 'Сравнение', icon: ShoppingCart },
+  { path: '/compare', label: 'Сравнение', icon: GitCompare },
+  { path: '/shopping-list', label: 'Списък', icon: ClipboardList },
   { path: '/trends', label: 'Тенденции', icon: TrendingDown },
 ];
 
