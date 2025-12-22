@@ -164,11 +164,14 @@ type PriceLike = {
   product_id: string;
   price: number;
   promo_price: number | null;
-  is_promo: boolean;
+  is_promo?: boolean | null;
 };
 
 export function getEffectivePrice(p: PriceLike): number {
-  const value = p.is_promo && p.promo_price != null ? p.promo_price : p.price;
+  // Use promo_price if available and valid, otherwise use regular price
+  const value = p.promo_price != null && Number.isFinite(p.promo_price) 
+    ? p.promo_price 
+    : p.price;
   return Number.isFinite(value) ? value : NaN;
 }
 
