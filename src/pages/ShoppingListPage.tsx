@@ -19,6 +19,7 @@ export default function ShoppingListPage() {
     clearList,
     storeTotals,
     recommendation,
+    getItemPrice,
     isLoading,
   } = useShoppingList();
 
@@ -64,6 +65,7 @@ export default function ShoppingListPage() {
                 items={items}
                 onUpdateQuantity={updateQuantity}
                 onRemove={removeItem}
+                getItemPrice={getItemPrice}
               />
             </CardContent>
           </Card>
