@@ -2,3 +2,6 @@ project_id = "pzmqhpguegmawvtfdfud"
 
 [functions.parse-brochure]
 verify_jwt = true
+
+[functions.match-product]
+verify_jwt = false
