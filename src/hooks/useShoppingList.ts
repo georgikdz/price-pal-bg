@@ -117,7 +117,7 @@ export function useShoppingList() {
       totalItems: items.length,
       coveredItems: cheapest.itemCount,
     };
-  }, [items.length, storeTotals]);
+  }, [items, storeTotals]);
 
   const getItemPrice = useCallback((productId: string, store: Store): number | undefined => {
     const priceRecord = priceMap.get(`${productId}-${store}`);
