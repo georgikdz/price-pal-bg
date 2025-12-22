@@ -386,9 +386,48 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
         return true;
       });
 
+    // AI-enhance matching for products with low confidence or no match
+    const enhancedProducts = await Promise.all(
+      cleanedProducts.map(async (p: any) => {
+        // Skip if already has high-confidence match
+        if (p.mapped_product_id && p.confidence_score >= 0.8) {
+          return p;
+        }
+
+        // Try AI matching for low-confidence or unmatched products
+        try {
+          const matchResponse = await fetch(`${supabaseUrl}/functions/v1/match-product`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              rawName: p.raw_name,
+              store: store,
+              useAI: true
+            }),
+          });
+
+          if (matchResponse.ok) {
+            const matchResult = await matchResponse.json();
+            if (matchResult.productId && matchResult.confidence > (p.confidence_score || 0)) {
+              console.log(`AI enhanced match for "${p.raw_name}": ${matchResult.productId} (${matchResult.confidence}) via ${matchResult.method}`);
+              return {
+                ...p,
+                mapped_product_id: matchResult.productId,
+                confidence_score: matchResult.confidence,
+              };
+            }
+          }
+        } catch (e) {
+          console.error(`AI matching failed for "${p.raw_name}":`, e);
+        }
+
+        return p;
+      })
+    );
+
     // Insert extracted products into database
-    if (cleanedProducts.length > 0) {
-      const productsToInsert = cleanedProducts.map((p: any) => ({
+    if (enhancedProducts.length > 0) {
+      const productsToInsert = enhancedProducts.map((p: any) => ({
         brochure_id: brochureId,
         raw_name: p.raw_name || 'Unknown',
         raw_price: p.raw_price,
@@ -408,7 +447,7 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
       }
 
       // Insert prices for mapped products with correct price logic
-      const pricesToInsert = cleanedProducts
+      const pricesToInsert = enhancedProducts
         .filter((p: any) => p.mapped_product_id && (p.raw_price || p.promo_price))
         .map((p: any) => ({
           product_id: p.mapped_product_id,
@@ -441,7 +480,7 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
       .from('brochure_uploads')
       .update({ 
         status: 'completed', 
-        products_found: cleanedProducts.length 
+        products_found: enhancedProducts.length 
       })
       .eq('id', brochureId);
 
@@ -453,8 +492,8 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
     return new Response(
       JSON.stringify({ 
         success: true, 
-        productsFound: cleanedProducts.length,
-        products: cleanedProducts 
+        productsFound: enhancedProducts.length,
+        products: enhancedProducts 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
