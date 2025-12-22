@@ -20,12 +20,20 @@ export function useShoppingList() {
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const { data: prices = [], isLoading } = useLatestPrices();
 
+  const priceMap = useMemo(() => {
+    const map = new Map<string, Price>();
+    for (const p of prices) {
+      map.set(`${p.product_id}-${p.store}`, p);
+    }
+    return map;
+  }, [prices]);
+
   const addItem = useCallback((productId: string, quantity: number = 1) => {
     setItems(prev => {
       const existing = prev.find(i => i.productId === productId);
       if (existing) {
-        return prev.map(i => 
-          i.productId === productId 
+        return prev.map(i =>
+          i.productId === productId
             ? { ...i, quantity: i.quantity + quantity }
             : i
         );
@@ -42,7 +50,7 @@ export function useShoppingList() {
     if (quantity <= 0) {
       setItems(prev => prev.filter(i => i.productId !== productId));
     } else {
-      setItems(prev => prev.map(i => 
+      setItems(prev => prev.map(i =>
         i.productId === productId ? { ...i, quantity } : i
       ));
     }
@@ -54,28 +62,19 @@ export function useShoppingList() {
 
   const storeTotals = useMemo((): StoreTotals[] => {
     const stores: Store[] = ['billa', 'kaufland', 'lidl'];
-    
-    console.log('[ShoppingList] Calculating totals for', items.length, 'items');
-    console.log('[ShoppingList] Available prices:', prices.length);
-    
+
     return stores.map(store => {
       let total = 0;
       let itemCount = 0;
       const missingItems: string[] = [];
 
       items.forEach(item => {
-        // Find price record for this product and store
-        const priceRecord = prices.find(
-          p => p.product_id === item.productId && p.store === store
-        );
-        
-        console.log(`[ShoppingList] ${store} - ${item.productId}: priceRecord =`, priceRecord ? `${priceRecord.price} (promo: ${priceRecord.promo_price})` : 'NOT FOUND');
-        
+        const priceRecord = priceMap.get(`${item.productId}-${store}`);
+
         if (priceRecord) {
           const effectivePrice = getEffectivePrice(priceRecord);
-          console.log(`[ShoppingList] ${store} - ${item.productId}: effectivePrice =`, effectivePrice);
-          
-          if (effectivePrice !== undefined) {
+
+          if (Number.isFinite(effectivePrice)) {
             total += effectivePrice * item.quantity;
             itemCount++;
           } else {
@@ -88,10 +87,9 @@ export function useShoppingList() {
         }
       });
 
-      console.log(`[ShoppingList] ${store} total: ${total}, items: ${itemCount}, missing: ${missingItems.length}`);
       return { store, total, itemCount, missingItems };
     });
-  }, [items, prices]);
+  }, [items, priceMap]);
 
   const recommendation = useMemo(() => {
     if (items.length === 0) return null;
@@ -103,28 +101,30 @@ export function useShoppingList() {
     const cheapest = sortedByTotal[0];
     const mostExpensive = sortedByTotal[sortedByTotal.length - 1];
 
-    if (!cheapest || !mostExpensive || cheapest.total === 0) return null;
+    if (!cheapest || !mostExpensive || !Number.isFinite(cheapest.total) || !Number.isFinite(mostExpensive.total)) {
+      return null;
+    }
 
     const savings = mostExpensive.total - cheapest.total;
-    const savingsPercent = mostExpensive.total > 0 
-      ? (savings / mostExpensive.total) * 100 
+    const savingsPercent = mostExpensive.total > 0
+      ? (savings / mostExpensive.total) * 100
       : 0;
 
     return {
       bestStore: cheapest.store,
-      savings,
-      savingsPercent,
+      savings: Math.max(0, savings),
+      savingsPercent: Math.max(0, savingsPercent),
       totalItems: items.length,
       coveredItems: cheapest.itemCount,
     };
-  }, [items, storeTotals]);
+  }, [items.length, storeTotals]);
 
   const getItemPrice = useCallback((productId: string, store: Store): number | undefined => {
-    const priceRecord = prices.find(
-      p => p.product_id === productId && p.store === store
-    );
-    return priceRecord ? getEffectivePrice(priceRecord) : undefined;
-  }, [prices]);
+    const priceRecord = priceMap.get(`${productId}-${store}`);
+    if (!priceRecord) return undefined;
+    const effective = getEffectivePrice(priceRecord);
+    return Number.isFinite(effective) ? effective : undefined;
+  }, [priceMap]);
 
   return {
     items,
