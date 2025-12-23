@@ -25,7 +25,7 @@ export const DEFAULT_MIN_PRICE = 0.50;
 // Specific minimum prices for known products (BGN)
 export const MIN_PRICES_BY_PRODUCT: Record<string, number> = {
   // Bakery & Grains
-  bread: 0.80,
+  bread: 0.50,
   flour: 0.60,
   rice: 1.00,
   pasta: 0.80,
