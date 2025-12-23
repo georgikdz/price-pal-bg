@@ -1,4 +1,4 @@
-import { Trash2, Minus, Plus } from 'lucide-react';
+import { Trash2, Minus, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CANONICAL_PRODUCTS, STORE_INFO } from '@/data/products';
 import { ShoppingListItem } from '@/hooks/useShoppingList';
@@ -35,14 +35,14 @@ export function ShoppingListItems({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {items.map(item => {
         const product = CANONICAL_PRODUCTS.find(p => p.id === item.productId);
         if (!product) return null;
 
         const isSelected = selectedProductId === item.productId;
 
-        // Get prices for each store
+        // Find cheapest store for this product
         const storePrices = getItemPrice
           ? stores.map(store => ({
               store,
@@ -51,9 +51,9 @@ export function ShoppingListItems({
           : [];
 
         const validPrices = storePrices.filter(sp => sp.price !== undefined && Number.isFinite(sp.price));
-        const minPrice = validPrices.length > 0
-          ? Math.min(...validPrices.map(sp => sp.price!))
-          : undefined;
+        const minPrice = validPrices.length > 0 ? Math.min(...validPrices.map(sp => sp.price!)) : undefined;
+        const cheapestStore = validPrices.find(sp => sp.price === minPrice)?.store;
+        const cheapestTotal = minPrice !== undefined ? minPrice * item.quantity : undefined;
 
         return (
           <div
@@ -69,27 +69,62 @@ export function ShoppingListItems({
               }
             }}
             className={cn(
-              "p-3 rounded-lg space-y-2 border transition-all",
-              "bg-secondary/30 border-border/50",
-              onSelectProduct && "cursor-pointer hover:bg-secondary/40",
-              isSelected && "bg-primary/5 border-primary/30 ring-2 ring-primary/20"
+              "group relative p-3 rounded-xl transition-all duration-200",
+              "border bg-card",
+              onSelectProduct && "cursor-pointer",
+              isSelected 
+                ? "border-primary/50 bg-primary/5 shadow-sm" 
+                : "border-border/40 hover:border-border hover:bg-accent/30"
             )}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl" aria-hidden>{product.icon}</span>
-                <div>
-                  <p className="font-medium text-sm">{product.nameBg}</p>
-                  <p className="text-xs text-muted-foreground">{product.unit}</p>
-                </div>
+            {/* Selection indicator */}
+            {isSelected && (
+              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
+            )}
+
+            <div className="flex items-center gap-3">
+              {/* Product icon */}
+              <div className={cn(
+                "text-2xl transition-transform duration-200",
+                isSelected && "scale-110"
+              )}>
+                {product.icon}
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-background rounded-lg p-1">
+              {/* Product info */}
+              <div className="flex-1 min-w-0">
+                <p className={cn(
+                  "font-medium text-sm truncate transition-colors",
+                  isSelected && "text-primary"
+                )}>
+                  {product.nameBg}
+                </p>
+                
+                {/* Cheapest store hint - only shown when not selected */}
+                {cheapestStore && !isSelected && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-[10px]">{STORE_INFO[cheapestStore].logo}</span>
+                    <span className="text-primary font-medium">
+                      {cheapestTotal?.toFixed(2)} лв
+                    </span>
+                  </p>
+                )}
+                
+                {isSelected && (
+                  <p className="text-xs text-primary/70 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Виж сравнение →
+                  </p>
+                )}
+              </div>
+
+              {/* Quantity controls */}
+              <div className="flex items-center gap-1">
+                <div className="flex items-center bg-secondary/50 rounded-lg">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-8 w-8 rounded-l-lg rounded-r-none hover:bg-secondary"
                     onClick={(e) => {
                       e.stopPropagation();
                       onUpdateQuantity(item.productId, item.quantity - 1);
@@ -97,11 +132,13 @@ export function ShoppingListItems({
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                  <span className="w-8 text-center font-semibold text-sm tabular-nums">
+                    {item.quantity}
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-8 w-8 rounded-r-lg rounded-l-none hover:bg-secondary"
                     onClick={(e) => {
                       e.stopPropagation();
                       onUpdateQuantity(item.productId, item.quantity + 1);
@@ -114,7 +151,7 @@ export function ShoppingListItems({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
                     onRemove(item.productId);
@@ -124,38 +161,6 @@ export function ShoppingListItems({
                 </Button>
               </div>
             </div>
-
-            {/* Show prices per store */}
-            {getItemPrice && (
-              <div className="flex gap-2 pt-1" aria-label="Цени по магазини">
-                {stores.map(store => {
-                  const price = getItemPrice(item.productId, store);
-                  const isCheapest = price !== undefined && Number.isFinite(price) && price === minPrice;
-                  const storeInfo = STORE_INFO[store];
-
-                  return (
-                    <div
-                      key={store}
-                      className={cn(
-                        "flex-1 text-center py-1 px-2 rounded text-xs",
-                        price !== undefined && Number.isFinite(price)
-                          ? isCheapest
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "bg-muted text-muted-foreground"
-                          : "bg-muted/50 text-muted-foreground/50"
-                      )}
-                    >
-                      <span className="block text-[10px] opacity-70">{storeInfo.name}</span>
-                      {price !== undefined && Number.isFinite(price) ? (
-                        <span>{(price * item.quantity).toFixed(2)} лв</span>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         );
       })}

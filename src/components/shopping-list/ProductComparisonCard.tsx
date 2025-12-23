@@ -2,7 +2,7 @@ import { Store } from '@/types';
 import { CANONICAL_PRODUCTS, STORE_INFO } from '@/data/products';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CheckCircle, Info } from 'lucide-react';
+import { CheckCircle, Info, ArrowRight } from 'lucide-react';
 
 interface ProductComparisonCardProps {
   productId: string;
@@ -34,73 +34,96 @@ export function ProductComparisonCard({ productId, quantity, getItemPrice }: Pro
       : 0;
 
   return (
-    <section aria-label="Сравнение на избран продукт" className="space-y-3">
-      <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xl" aria-hidden>
-            {product?.icon ?? '🧺'}
-          </span>
-          <h3 className="text-sm font-semibold text-foreground">
+    <section aria-label="Сравнение на избран продукт" className="space-y-4">
+      {/* Product header */}
+      <header className="flex items-center gap-3 pb-2 border-b border-border/30">
+        <div className="text-3xl">{product?.icon ?? '🧺'}</div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-foreground">
             {product ? product.nameBg : productId}
-            <span className="text-muted-foreground font-normal"> × {quantity}</span>
           </h3>
-        </div>
-
-        {totals.length >= 2 && cheapestStore ? (
           <p className="text-sm text-muted-foreground">
-            Най-евтино: <span className="font-semibold text-foreground">{STORE_INFO[cheapestStore].name}</span>
-            {savings > 0 && (
-              <>
-                {' '}• спестяваш <span className="font-semibold text-primary">{savings.toFixed(2)} лв</span>
-              </>
-            )}
+            {quantity} × {product?.unit ?? 'бр.'}
           </p>
-        ) : (
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            <Info className="h-4 w-4" /> Няма достатъчно цени за сравнение на този продукт.
-          </p>
+        </div>
+        {totals.length >= 2 && cheapestStore && savings > 0 && (
+          <Badge variant="secondary" className="gap-1 text-primary bg-primary/10">
+            <ArrowRight className="h-3 w-3" />
+            {savings.toFixed(2)} лв спестени
+          </Badge>
         )}
       </header>
 
-      <div className="space-y-3">
-        {rows.map(({ store, unitPrice, total }) => {
-          const storeInfo = STORE_INFO[store];
-          const isBest = cheapestStore === store && total !== undefined;
+      {/* Store comparison */}
+      {totals.length < 2 ? (
+        <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-xl text-muted-foreground">
+          <Info className="h-5 w-5" />
+          <p className="text-sm">Няма достатъчно цени за сравнение.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map(({ store, unitPrice, total }, index) => {
+            const storeInfo = STORE_INFO[store];
+            const isBest = cheapestStore === store && total !== undefined;
 
-          return (
-            <article
-              key={store}
-              className={cn(
-                "p-4 rounded-xl border transition-all",
-                isBest ? "bg-primary/5 border-primary/30 ring-2 ring-primary/20" : "bg-card border-border/50"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg" aria-hidden>
-                    {storeInfo.logo}
-                  </span>
-                  <span className={cn("font-semibold", `text-store-${store}`)}>{storeInfo.name}</span>
-                  {isBest && (
-                    <Badge variant="default" className="text-xs">
-                      <CheckCircle className="h-3 w-3 mr-1" /> Най-евтино
-                    </Badge>
-                  )}
-                </div>
+            return (
+              <article
+                key={store}
+                className={cn(
+                  "relative p-4 rounded-xl border transition-all duration-200",
+                  isBest 
+                    ? "bg-primary/5 border-primary/40 shadow-sm" 
+                    : "bg-card border-border/40"
+                )}
+              >
+                {/* Rank badge */}
+                {index === 0 && total !== undefined && (
+                  <div className="absolute -top-2 -right-2">
+                    <div className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">
+                      #1
+                    </div>
+                  </div>
+                )}
 
-                <div className="text-right">
-                  <p className={cn("font-display text-2xl font-bold", isBest ? "text-primary" : "text-foreground")}>
-                    {total !== undefined ? `${total.toFixed(2)} лв` : '-'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {unitPrice !== undefined ? `${unitPrice.toFixed(2)} лв / ${product?.unit ?? 'бр.'}` : 'няма цена'}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{storeInfo.logo}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "font-semibold",
+                          isBest ? "text-primary" : "text-foreground"
+                        )}>
+                          {storeInfo.name}
+                        </span>
+                        {isBest && (
+                          <Badge variant="default" className="text-xs gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Най-евтино
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {unitPrice !== undefined 
+                          ? `${unitPrice.toFixed(2)} лв / ${product?.unit ?? 'бр.'}`
+                          : 'няма цена'
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className={cn(
+                    "font-display text-2xl font-bold tabular-nums",
+                    isBest ? "text-primary" : "text-foreground"
+                  )}>
+                    {total !== undefined ? `${total.toFixed(2)} лв` : '—'}
                   </p>
                 </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
