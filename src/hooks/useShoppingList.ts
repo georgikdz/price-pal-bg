@@ -94,24 +94,29 @@ export function useShoppingList() {
   const recommendation = useMemo(() => {
     if (items.length === 0) return null;
 
-    const validTotals = storeTotals.filter(t => t.itemCount > 0);
+    const validTotals = storeTotals.filter(t => t.itemCount > 0 && t.total > 0);
     if (validTotals.length === 0) return null;
 
     const sortedByTotal = [...validTotals].sort((a, b) => a.total - b.total);
     const cheapest = sortedByTotal[0];
-    const mostExpensive = sortedByTotal[sortedByTotal.length - 1];
+    const secondCheapest = sortedByTotal[1];
 
-    if (!cheapest || !mostExpensive || !Number.isFinite(cheapest.total) || !Number.isFinite(mostExpensive.total)) {
+    if (!cheapest || !Number.isFinite(cheapest.total)) {
       return null;
     }
 
-    const savings = mostExpensive.total - cheapest.total;
-    const savingsPercent = mostExpensive.total > 0
-      ? (savings / mostExpensive.total) * 100
+    // Compare to second cheapest (more meaningful than most expensive)
+    const savings = secondCheapest && Number.isFinite(secondCheapest.total)
+      ? secondCheapest.total - cheapest.total
+      : 0;
+
+    const savingsPercent = secondCheapest && secondCheapest.total > 0
+      ? (savings / secondCheapest.total) * 100
       : 0;
 
     return {
       bestStore: cheapest.store,
+      bestTotal: cheapest.total,
       savings: Math.max(0, savings),
       savingsPercent: Math.max(0, savingsPercent),
       totalItems: items.length,
